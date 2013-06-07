@@ -41,6 +41,7 @@ import org.jboss.as.weld.deployment.WeldAttachments;
 import org.jboss.modules.Module;
 import org.jboss.weld.bootstrap.spi.Metadata;
 import org.jboss.weld.metadata.MetadataImpl;
+import org.hibernate.validator.internal.cdi.ValidationExtension;
 
 /**
  * Deployment processor that loads CDI portable extensions.
@@ -85,6 +86,24 @@ public class WeldPortableExtensionProcessor implements DeploymentUnitProcessor {
         try {
             SecurityActions.setContextClassLoader(module.getClassLoader());
             loadAttachments(services, module, deploymentUnit, topLevelDeployment);
+
+            // Load the Hibernate Validator CDI portable extension
+            SecurityActions.setContextClassLoader(ValidationExtension.class.getClassLoader());
+            final ValidationExtension ext = new ValidationExtension();
+
+            Metadata<Extension> metadata = new Metadata<Extension>() {
+                @Override
+                public Extension getValue() {
+                    return ext;
+                }
+
+                @Override
+                public String getLocation() {
+                    return ext.getClass().getName();
+                }
+            };
+
+            topLevelDeployment.addToAttachmentList(WeldAttachments.PORTABLE_EXTENSIONS, metadata);
         } finally {
             SecurityActions.setContextClassLoader(oldCl);
         }
