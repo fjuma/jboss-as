@@ -36,8 +36,12 @@ import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 
 import org.jboss.as.web.common.SharedTldsMetaDataBuilder;
+import org.jboss.as.web.common.WarMetaData;
 import org.jboss.metadata.parser.jsp.TldMetaDataParser;
 import org.jboss.metadata.parser.util.NoopXMLResolver;
+import org.jboss.metadata.web.jboss.JBossServletMetaData;
+import org.jboss.metadata.web.spec.ListenerMetaData;
+import org.jboss.metadata.web.spec.ServletMappingMetaData;
 import org.jboss.metadata.web.spec.TldMetaData;
 import org.jboss.modules.Module;
 import org.jboss.modules.ModuleClassLoader;
@@ -51,8 +55,12 @@ import org.jboss.modules.ModuleLoadException;
 public class JSFSharedTldsProcessor implements DeploymentUnitProcessor {
 
     private static final String[] JSF_TAGLIBS = { "html_basic.tld", "jsf_core.tld", "mojarra_ext.tld", "myfaces_core.tld", "myfaces_html.tld" };
+    private static final String JSF_CORE_TLD_NAME = "jsf_core.tld";
+    private static final String COM_SUN_FACES_CONFIG_CONFIGURE_LISTENER = "com.sun.faces.config.ConfigureListener";
+    private static final String JAVAX_FACES_WEBAPP_FACES_SERVLET = "javax.faces.webapp.FacesServlet";
 
     private final Map<String, List<TldMetaData>> jsfTldMap = new HashMap<String, List<TldMetaData>>();
+    private final Map<String, List<TldMetaData>> jsfTldMapWithoutConfigureListener = new HashMap<String, List<TldMetaData>>();
    // private final ArrayList<TldMetaData> jsfTlds = new ArrayList<TldMetaData>();
 
     public JSFSharedTldsProcessor() {
@@ -65,6 +73,7 @@ public class JSFSharedTldsProcessor implements DeploymentUnitProcessor {
 
         for (String slot : jsfSlotNames) {
             final List<TldMetaData> jsfTlds = new ArrayList<TldMetaData>();
+            final List<TldMetaData> jsfTldsWithoutConfigureListener = new ArrayList<TldMetaData>();
             try {
                 ModuleClassLoader jsf = Module.getModuleFromCallerModuleLoader(moduleFactory.getImplModId(slot)).getClassLoader();
                 for (String tld : JSF_TAGLIBS) {
@@ -72,6 +81,12 @@ public class JSFSharedTldsProcessor implements DeploymentUnitProcessor {
                     if (is != null) {
                         TldMetaData tldMetaData = parseTLD(is);
                         jsfTlds.add(tldMetaData);
+
+                        if (tld.equals(JSF_CORE_TLD_NAME)) {
+                            jsfTldsWithoutConfigureListener.add(getTldMetaDataWithoutConfigureListener(tldMetaData));
+                        } else {
+                            jsfTldsWithoutConfigureListener.add(tldMetaData);
+                        }
                     }
                 }
             } catch (ModuleLoadException e) {
@@ -81,6 +96,7 @@ public class JSFSharedTldsProcessor implements DeploymentUnitProcessor {
             }
 
             jsfTldMap.put(slot, jsfTlds);
+            jsfTldMapWithoutConfigureListener.put(slot, jsfTldsWithoutConfigureListener);
         }
     }
 
@@ -101,9 +117,29 @@ public class JSFSharedTldsProcessor implements DeploymentUnitProcessor {
         }
     }
 
+    private TldMetaData getTldMetaDataWithoutConfigureListener(TldMetaData tldMetaData) {
+        TldMetaData modifiedTldMetaData = null;
+
+        if(tldMetaData != null) {
+            modifiedTldMetaData = (TldMetaData)tldMetaData.clone();
+            List<ListenerMetaData> jsfTldListeners = tldMetaData.getListeners();
+            if (jsfTldListeners != null) {
+                List<ListenerMetaData> modifiedJsfTldListeners = new ArrayList<ListenerMetaData>();
+                for (ListenerMetaData jsfTldListener : jsfTldListeners) {
+                    if (!jsfTldListener.getListenerClass().equals(COM_SUN_FACES_CONFIG_CONFIGURE_LISTENER)) {
+                        modifiedJsfTldListeners.add(jsfTldListener);
+                    }
+                }
+                modifiedTldMetaData.setListeners(modifiedJsfTldListeners);
+            }
+        }
+        return modifiedTldMetaData;
+    }
+
     public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
         final DeploymentUnit deploymentUnit = phaseContext.getDeploymentUnit();
         final DeploymentUnit topLevelDeployment = deploymentUnit.getParent() == null ? deploymentUnit : deploymentUnit.getParent();
+        final WarMetaData warMetaData = deploymentUnit.getAttachment(WarMetaData.ATTACHMENT_KEY);
 
         String jsfVersion = JsfVersionMarker.getVersion(topLevelDeployment);
         if (jsfVersion.equals(JsfVersionMarker.WAR_BUNDLES_JSF_IMPL)) {
@@ -120,12 +156,47 @@ public class JSFSharedTldsProcessor implements DeploymentUnitProcessor {
         }
         slot = JSFModuleIdFactory.getInstance().computeSlot(slot);
 
-        List<TldMetaData> jsfTlds = this.jsfTldMap.get(slot);
+        List<TldMetaData> jsfTlds;
+
+        if (!facesServletMappingExists(warMetaData)) {
+            jsfTlds = this.jsfTldMapWithoutConfigureListener.get(slot);
+        } else {
+            jsfTlds = this.jsfTldMap.get(slot);
+        }
+
         if (jsfTlds != null) tldsMetaData.addAll(jsfTlds);
+
         deploymentUnit.putAttachment(SharedTldsMetaDataBuilder.ATTACHMENT_KEY, tldsMetaData);
     }
 
     public void undeploy(DeploymentUnit context) {
+    }
+
+    private boolean facesServletMappingExists(WarMetaData warMetaData) {
+        boolean facesServletMappingFound = false;
+        JBossServletMetaData facesServlet = null;
+
+        if (warMetaData != null && warMetaData.getMergedJBossWebMetaData() != null
+                && warMetaData.getMergedJBossWebMetaData().getServlets() != null) {
+            for(JBossServletMetaData servlet : warMetaData.getMergedJBossWebMetaData().getServlets()) {
+                if(JAVAX_FACES_WEBAPP_FACES_SERVLET.equals(servlet.getServletClass())) {
+                    facesServlet = servlet;
+                    break;
+                }
+            }
+        }
+        if (facesServlet != null) {
+            if (warMetaData != null && warMetaData.getMergedJBossWebMetaData() != null
+                    && warMetaData.getMergedJBossWebMetaData().getServletMappings() != null) {
+                for (ServletMappingMetaData mapping : warMetaData.getMergedJBossWebMetaData().getServletMappings()) {
+                    if (mapping.getServletName().equals(facesServlet.getName())) {
+                        facesServletMappingFound = true;
+                        break;
+                    }
+                }
+            }
+        }
+        return facesServletMappingFound;
     }
 
 }

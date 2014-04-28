@@ -255,7 +255,6 @@ public enum Phase {
     public static final int PARSE_WEB_DEPLOYMENT                        = 0x0B00;
     public static final int PARSE_WEB_DEPLOYMENT_FRAGMENT               = 0x0C00;
     public static final int PARSE_JSF_VERSION                           = 0x0C50;
-    public static final int PARSE_JSF_SHARED_TLDS                       = 0x0C51;
     public static final int PARSE_ANNOTATION_WAR                        = 0x0D00;
     public static final int PARSE_ANNOTATION_EJB                        = 0x0D10;
     public static final int PARSE_JBOSS_WEB_DEPLOYMENT                  = 0x0E00;
@@ -274,6 +273,7 @@ public enum Phase {
     public static final int PARSE_WELD_CONFIGURATION                    = 0x1C01;
     public static final int PARSE_WEB_COMPONENTS                        = 0x1F00;
     public static final int PARSE_WEB_MERGE_METADATA                    = 0x2000;
+    public static final int PARSE_JSF_SHARED_TLDS                       = 0x2001;
     public static final int PARSE_OSGI_COMPONENTS                       = 0x2010;
     public static final int PARSE_WEBSERVICES_CONTEXT_INJECTION         = 0x2040;
     public static final int PARSE_WEBSERVICES_LIBRARY_FILTER            = 0x2045;
