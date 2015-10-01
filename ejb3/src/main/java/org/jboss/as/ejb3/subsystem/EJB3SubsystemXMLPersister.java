@@ -232,6 +232,14 @@ public class EJB3SubsystemXMLPersister implements XMLElementWriter<SubsystemMars
             writer.writeEndElement();
         }
 
+        // security-domain elements
+        if (model.hasDefined(SECURITY_DOMAINS)) {
+            List<ModelNode> securityDomains = model.get(SECURITY_DOMAINS).asList();
+            for (ModelNode current : securityDomains) {
+                writeSecurityDomain(writer, current);
+            }
+        }
+
         // default-missing-method-permissions-deny-access element
         if (model.hasDefined(DEFAULT_MISSING_METHOD_PERMISSIONS_DENY_ACCESS)) {
             writer.writeStartElement(EJB3SubsystemXMLElement.DEFAULT_MISSING_METHOD_PERMISSIONS_DENY_ACCESS.getLocalName());
@@ -586,6 +594,13 @@ public class EJB3SubsystemXMLPersister implements XMLElementWriter<SubsystemMars
             }
             writer.writeEndElement();
         }
+    }
+
+    private void writeSecurityDomain(final XMLExtendedStreamWriter writer, final ModelNode securityDomain) throws XMLStreamException {
+        writer.writeStartElement(SECURITY_DOMAIN);
+        EJB3SubsystemRootResourceDefinition.SECURITY_DOMAIN_NAME.marshallAsAttribute(securityDomain, writer);
+        EJB3SubsystemRootResourceDefinition.SECURITY_DOMAIN_ALIAS.marshallAsAttribute(securityDomain, writer);
+        writer.writeEndElement();
     }
 
     private static void writeAttribute(XMLExtendedStreamWriter writer, ModelNode model, AttributeDefinition attribute) throws XMLStreamException {

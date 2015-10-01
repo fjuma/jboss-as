@@ -57,6 +57,7 @@
                         minOccurs="0" maxOccurs="1"/>
             <xs:element name="default-distinct-name" type="default-distinct-nameType" minOccurs="0" maxOccurs="1"/>
             <xs:element name="default-security-domain" type="default-security-domainType" minOccurs="0" maxOccurs="1"/>
+            <xs:element name="security-domain" type="securityDomainType" minOccurs="0" maxOccurs="unbounded" />
             <xs:element name="default-missing-method-permissions-deny-access" type="default-missing-method-permissions-deny-accessType" minOccurs="0" maxOccurs="1" />
             <xs:element name="disable-default-ejb-permissions" type="disable-default-ejb-permissionsType" minOccurs="0" maxOccurs="1" />
             <xs:element name="statistics" type="statisticsType" minOccurs="0" maxOccurs="1"/>
@@ -399,6 +400,22 @@
 
     <xs:complexType name="statisticsType">
         <xs:attribute name="enabled" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="securityDomainType">
+        <xs:annotation>
+            <xs:documentation>
+                A reference to an Elytron security domain.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="name" type="xs:string" use="required" />
+        <xs:attribute name="alias" type="xs:string" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                    Defines an alias for this Elytron security domain.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
     </xs:complexType>
 
     <xs:complexType name="channel-creation-optionsType">

@@ -22,11 +22,17 @@
 
 package org.jboss.as.ejb3.subsystem;
 
+import java.util.Map;
+
 import org.jboss.as.controller.AbstractWriteAttributeHandler;
+import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ModelVersion;
+import org.jboss.as.controller.ObjectListAttributeDefinition;
+import org.jboss.as.controller.ObjectTypeAttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.ReloadRequiredWriteAttributeHandler;
 import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleResourceDefinition;
@@ -63,6 +69,11 @@ import org.jboss.dmr.ModelType;
  * @author Brian Stansberry (c) 2011 Red Hat Inc.
  */
 public class EJB3SubsystemRootResourceDefinition extends SimpleResourceDefinition {
+    static final String SECURITY_DOMAIN_CAPABILITY = "org.wildfly.security.security-domain";
+    private static final String SECURITY_DOMAINS_CAPABILITY_NAME = "org.wildfly.ejb3.security-domains";
+    static final RuntimeCapability<Void> SECURITY_DOMAINS_CAPABILITY =
+            RuntimeCapability.Builder.of(SECURITY_DOMAINS_CAPABILITY_NAME, false, Map.class)
+                    .build();
 
     static final SimpleAttributeDefinition DEFAULT_SLSB_INSTANCE_POOL =
             new SimpleAttributeDefinitionBuilder(EJB3SubsystemModel.DEFAULT_SLSB_INSTANCE_POOL, ModelType.STRING, true)
@@ -132,6 +143,30 @@ public class EJB3SubsystemRootResourceDefinition extends SimpleResourceDefinitio
                     .setNullSignficant(true)
                     .build();
 
+    // FJ static final SimpleAttributeDefinition SECURITY_DOMAIN_NAME = new SimpleAttributeDefinitionBuilder(EJB3SubsystemModel.SECURITY_DOMAIN, ModelType.STRING, false)
+    static final SimpleAttributeDefinition SECURITY_DOMAIN_NAME = new SimpleAttributeDefinitionBuilder(ModelDescriptionConstants.NAME, ModelType.STRING, false)
+            .setAllowExpression(true)
+            .setMinSize(1)
+            // FJ
+            //.setCapabilityReference(SECURITY_DOMAIN_CAPABILITY, SECURITY_DOMAINS_CAPABILITY)
+            .setCapabilityReference(SECURITY_DOMAIN_CAPABILITY, SECURITY_DOMAINS_CAPABILITY.getName(), true)
+            .build();
+
+    //static final SimpleAttributeDefinition SECURITY_DOMAIN_ALIAS = new SimpleAttributeDefinitionBuilder(EJB3SubsystemModel.SECURITY_DOMAIN, ModelType.STRING, true)
+    static final SimpleAttributeDefinition SECURITY_DOMAIN_ALIAS = new SimpleAttributeDefinitionBuilder(ModelDescriptionConstants.ALIAS, ModelType.STRING, true)
+            .setAllowExpression(true)
+            .setMinSize(1)
+            .build();
+
+    static final ObjectTypeAttributeDefinition SECURITY_DOMAIN =
+            new ObjectTypeAttributeDefinition.Builder(EJB3SubsystemModel.SECURITY_DOMAIN, SECURITY_DOMAIN_NAME, SECURITY_DOMAIN_ALIAS)
+                    .build();
+
+    static final ObjectListAttributeDefinition SECURITY_DOMAINS = new ObjectListAttributeDefinition.Builder(EJB3SubsystemModel.SECURITY_DOMAINS, SECURITY_DOMAIN)
+            .setFlags(AttributeAccess.Flag.RESTART_RESOURCE_SERVICES)
+            .setAllowNull(true)
+            .build();
+
     public static final SimpleAttributeDefinition PASS_BY_VALUE =
             new SimpleAttributeDefinitionBuilder(EJB3SubsystemModel.IN_VM_REMOTE_INTERFACE_INVOCATION_PASS_BY_VALUE, ModelType.BOOLEAN, true)
                     .setAllowExpression(true)
@@ -181,7 +216,7 @@ public class EJB3SubsystemRootResourceDefinition extends SimpleResourceDefinitio
         this.pathManager = pathManager;
     }
 
-    static final SimpleAttributeDefinition[] ATTRIBUTES = {
+    static final AttributeDefinition[] ATTRIBUTES = {
             DEFAULT_CLUSTERED_SFSB_CACHE,
             DEFAULT_ENTITY_BEAN_INSTANCE_POOL,
             DEFAULT_ENTITY_BEAN_OPTIMISTIC_LOCKING,
@@ -198,7 +233,8 @@ public class EJB3SubsystemRootResourceDefinition extends SimpleResourceDefinitio
             DEFAULT_MISSING_METHOD_PERMISSIONS_DENY_ACCESS,
             DEFAULT_SFSB_PASSIVATION_DISABLED_CACHE,
             DISABLE_DEFAULT_EJB_PERMISSIONS,
-            LOG_EJB_EXCEPTIONS
+            LOG_EJB_EXCEPTIONS,
+            SECURITY_DOMAINS
     };
 
     @Override
@@ -220,6 +256,8 @@ public class EJB3SubsystemRootResourceDefinition extends SimpleResourceDefinitio
 
         final EJBDefaultSecurityDomainWriteHandler defaultSecurityDomainWriteHandler = new EJBDefaultSecurityDomainWriteHandler(DEFAULT_SECURITY_DOMAIN, defaultSecurityDomainDeploymentProcessor);
         resourceRegistration.registerReadWriteAttribute(DEFAULT_SECURITY_DOMAIN, null, defaultSecurityDomainWriteHandler);
+
+        resourceRegistration.registerReadWriteAttribute(SECURITY_DOMAINS, null, new ReloadRequiredWriteAttributeHandler(SECURITY_DOMAINS));
 
         final EJBDefaultMissingMethodPermissionsWriteHandler defaultMissingMethodPermissionsWriteHandler = new EJBDefaultMissingMethodPermissionsWriteHandler(DEFAULT_MISSING_METHOD_PERMISSIONS_DENY_ACCESS, missingMethodPermissionsDenyAccessMergingProcessor);
         resourceRegistration.registerReadWriteAttribute(DEFAULT_MISSING_METHOD_PERMISSIONS_DENY_ACCESS, null, defaultMissingMethodPermissionsWriteHandler);
@@ -274,6 +312,11 @@ public class EJB3SubsystemRootResourceDefinition extends SimpleResourceDefinitio
 
         // subsystem=ejb3/mdb-delivery-group=*
         subsystemRegistration.registerSubModel(MdbDeliveryGroupResourceDefinition.INSTANCE);
+    }
+
+    @Override
+    public void registerCapabilities(ManagementResourceRegistration resourceRegistration) {
+        resourceRegistration.registerCapability(SECURITY_DOMAINS_CAPABILITY);
     }
 
     static void registerTransformers(SubsystemRegistration subsystemRegistration) {

@@ -31,6 +31,7 @@ import java.util.Map;
 public enum EJB3SubsystemXMLAttribute {
     UNKNOWN(null),
 
+    ALIAS("alias"),
     ALIASES("aliases"),
     ALLOW_EXECUTION("allow-execution"),
 

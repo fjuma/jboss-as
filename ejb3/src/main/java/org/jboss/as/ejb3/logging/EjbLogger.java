@@ -3105,4 +3105,7 @@ public interface EjbLogger extends BasicLogger {
 
     @Message(id = 483, value = "Attributes are mutually exclusive: %s, %s")
     XMLStreamException mutuallyExclusiveAttributes(@Param Location location, String attribute1, String attribute2);
+
+    @Message(id = 484, value = "The default-security-domain '%s' is not in the list of referenced security domains.")
+    OperationFailedException defaultSecurityDomainNotReferenced(String defaultSecurityDomain);
 }

@@ -22,15 +22,19 @@
 
 package org.jboss.as.ejb3.subsystem;
 
+import java.util.List;
+import java.util.Map;
+
 import com.arjuna.ats.arjuna.common.CoreEnvironmentBean;
 import com.arjuna.ats.jbossatx.jta.RecoveryManagerService;
 import org.jboss.as.connector.util.ConnectorServices;
 import org.jboss.as.controller.AbstractBoottimeAddStepHandler;
+import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.ProcessType;
-import org.jboss.as.controller.SimpleAttributeDefinition;
+import org.jboss.as.controller.capability.RuntimeCapability;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.core.security.ServerSecurityManager;
 import org.jboss.as.ejb3.cache.CacheFactoryBuilderRegistryService;
@@ -101,6 +105,7 @@ import org.jboss.as.ejb3.deployment.processors.security.JaccEjbDeploymentProcess
 import org.jboss.as.ejb3.iiop.POARegistry;
 import org.jboss.as.ejb3.iiop.RemoteObjectSubstitutionService;
 import org.jboss.as.ejb3.iiop.stub.DynamicStubFactoryFactory;
+import org.jboss.as.ejb3.logging.EjbLogger;
 import org.jboss.as.ejb3.remote.DefaultEjbClientContextService;
 import org.jboss.as.ejb3.remote.EJBRemoteConnectorService;
 import org.jboss.as.ejb3.remote.EJBTransactionRecoveryService;
@@ -127,15 +132,18 @@ import org.jboss.ejb.client.naming.ejb.ejbURLContextFactory;
 import org.jboss.javax.rmi.RemoteObjectSubstitutionManager;
 import org.jboss.jca.core.spi.rar.ResourceAdapterRepository;
 import org.jboss.metadata.ejb.spec.EjbJarMetaData;
+import org.jboss.msc.inject.Injector;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceBuilder.DependencyType;
 import org.jboss.msc.service.ServiceController;
+import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceTarget;
 import org.jboss.remoting3.Endpoint;
 import org.omg.PortableServer.POA;
 import org.wildfly.clustering.singleton.SingletonPolicy;
 import org.wildfly.iiop.openjdk.rmi.DelegatingStubFactoryFactory;
 import org.wildfly.iiop.openjdk.service.CorbaPOAService;
+import org.wildfly.security.auth.server.SecurityDomain;
 import org.wildfly.security.manager.WildFlySecurityManager;
 
 import javax.transaction.TransactionManager;
@@ -152,6 +160,12 @@ import static org.jboss.as.ejb3.subsystem.EJB3SubsystemModel.DEFAULT_SINGLETON_B
 import static org.jboss.as.ejb3.subsystem.EJB3SubsystemModel.DEFAULT_SLSB_INSTANCE_POOL;
 import static org.jboss.as.ejb3.subsystem.EJB3SubsystemModel.DEFAULT_STATEFUL_BEAN_ACCESS_TIMEOUT;
 import static org.jboss.as.ejb3.subsystem.EJB3SubsystemRootResourceDefinition.CLUSTERED_SINGLETON_CAPABILITY;
+import static org.jboss.as.ejb3.subsystem.EJB3SubsystemRootResourceDefinition.DEFAULT_SECURITY_DOMAIN;
+import static org.jboss.as.ejb3.subsystem.EJB3SubsystemRootResourceDefinition.SECURITY_DOMAINS;
+import static org.jboss.as.ejb3.subsystem.EJB3SubsystemRootResourceDefinition.SECURITY_DOMAINS_CAPABILITY;
+import static org.jboss.as.ejb3.subsystem.EJB3SubsystemRootResourceDefinition.SECURITY_DOMAIN_ALIAS;
+import static org.jboss.as.ejb3.subsystem.EJB3SubsystemRootResourceDefinition.SECURITY_DOMAIN_CAPABILITY;
+import static org.jboss.as.ejb3.subsystem.EJB3SubsystemRootResourceDefinition.SECURITY_DOMAIN_NAME;
 
 /**
  * Add operation handler for the EJB3 subsystem.
@@ -172,16 +186,41 @@ class EJB3SubsystemAdd extends AbstractBoottimeAddStepHandler {
     protected void recordCapabilitiesAndRequirements(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
         // TODO: delete this once optional requirements no longer require the existence of a capability
         context.registerCapability(CLUSTERED_SINGLETON_CAPABILITY, null);
+
+        context.registerCapability(EJB3SubsystemRootResourceDefinition.SECURITY_DOMAINS_CAPABILITY, null);
     }
 
     @Override
     protected void populateModel(final OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
         ModelNode model = resource.getModel();
-        for (SimpleAttributeDefinition attr : EJB3SubsystemRootResourceDefinition.ATTRIBUTES) {
+        for (AttributeDefinition attr : EJB3SubsystemRootResourceDefinition.ATTRIBUTES) {
             attr.validateAndSet(operation, model);
         }
         if (context.getProcessType().isServer()) {
             context.addStep(new ValidateClusteredCacheRefHandler(), OperationContext.Stage.MODEL);
+        }
+        // Validate the default security domain
+        if (model.hasDefined(EJB3SubsystemModel.SECURITY_DOMAINS)) {
+            String defaultSecurityDomain = DEFAULT_SECURITY_DOMAIN.resolveModelAttribute(context, model).asString();
+            List<ModelNode> securityDomains = SECURITY_DOMAINS.resolveModelAttribute(context, model).asList();
+            boolean defaultFound = false;
+            // FJ
+            System.out.println("*** VALIDATING");
+            for (ModelNode current : securityDomains) {
+                // FJ
+                System.out.println("*** MODEL NODE RETRIEVED IS " + current.asString());// + "  NAME " + current.asObject().get("name") + " ALIAS " + current.asObject().get("alias"));
+                String securityDomainName = SECURITY_DOMAIN_NAME.resolveModelAttribute(context, current).asString();
+                // FJ
+                System.out.println("*** FOUND SECURITY DOMAIN NAME IS " + securityDomainName);
+                System.out.println("*** SECURITY DOMAIN ALIAS IS " + org.jboss.as.ejb3.subsystem.EJB3SubsystemRootResourceDefinition.SECURITY_DOMAIN_ALIAS.resolveModelAttribute(context, current).asString());
+                if (defaultSecurityDomain.equals(securityDomainName)) {
+                    defaultFound = true;
+                    break;
+                }
+            }
+            if (!defaultFound) {
+                throw EjbLogger.ROOT_LOGGER.defaultSecurityDomainNotReferenced(defaultSecurityDomain);
+            }
         }
     }
 
@@ -220,7 +259,6 @@ class EJB3SubsystemAdd extends AbstractBoottimeAddStepHandler {
         final ModelNode defaultMissingMethod = EJB3SubsystemRootResourceDefinition.DEFAULT_MISSING_METHOD_PERMISSIONS_DENY_ACCESS.resolveModelAttribute(context, model);
         final boolean defaultMissingMethodValue = defaultMissingMethod.asBoolean();
         this.missingMethodPermissionsDenyAccessMergingProcessor.setDenyAccessByDefault(defaultMissingMethodValue);
-
 
         context.addStep(new AbstractDeploymentChainStep() {
             @Override
@@ -347,6 +385,10 @@ class EJB3SubsystemAdd extends AbstractBoottimeAddStepHandler {
 
         context.getServiceTarget().addService(DeploymentRepository.SERVICE_NAME, new DeploymentRepository()).install();
 
+        if (model.hasDefined(EJB3SubsystemModel.SECURITY_DOMAINS)) {
+            addSecurityDomainsService(context, model);
+        }
+
         addRemoteInvocationServices(context, model, appclient);
         // add clustering service
         addClusteringServices(context, appclient);
@@ -460,6 +502,31 @@ class EJB3SubsystemAdd extends AbstractBoottimeAddStepHandler {
                     .addDependency(context.getCapabilityServiceName(SingletonPolicy.CAPABILITY_NAME, SingletonPolicy.class),
                             SingletonPolicy.class, singletonBarrierCreator.getSingletonPolicy()).install();
         }
+    }
+
+    private static void addSecurityDomainsService(final OperationContext context, final ModelNode ejbSubsystemModel) throws OperationFailedException {
+        final List<ModelNode> securityDomains = SECURITY_DOMAINS.resolveModelAttribute(context, ejbSubsystemModel).asList();
+        final ServiceName securityDomainsServiceName = SECURITY_DOMAINS_CAPABILITY.getCapabilityServiceName();
+        final SecurityDomainsService securityDomainsService = new SecurityDomainsService();
+        final ServiceTarget target = context.getServiceTarget();
+        final ServiceBuilder<Map<String, SecurityDomain>> securityDomainsServiceBuilder = target.addService(securityDomainsServiceName, securityDomainsService);
+        for (ModelNode current : securityDomains) {
+            final String securityDomainName = SECURITY_DOMAIN_NAME.resolveModelAttribute(context, current).asString();
+            final ModelNode securityDomainAliasModelNode = SECURITY_DOMAIN_ALIAS.resolveModelAttribute(context, current);
+            final String securityDomainAlias = securityDomainAliasModelNode.isDefined() ? securityDomainAliasModelNode.asString() : securityDomainName;
+            // FJ
+            System.out.println("*** CAPABILITY SECURITY DOMAIN NAME " + securityDomainName);
+            System.out.println("*** CAPABILITY SECURITY DOMAIN ALIAS " + securityDomainAlias);
+            final String runtimeCapability = RuntimeCapability.buildDynamicCapabilityName(SECURITY_DOMAIN_CAPABILITY, securityDomainName);
+            final ServiceName securityDomainServiceName = context.getCapabilityServiceName(runtimeCapability, SecurityDomain.class);
+            final Injector<SecurityDomain> injector = securityDomainsService.createSecurityDomainInjector(securityDomainAlias);
+            if (injector != null) {
+                // FJ
+                System.out.println("*** ADDING DEPENDENCY");
+                securityDomainsServiceBuilder.addDependency(securityDomainServiceName, SecurityDomain.class, injector);
+            }
+        }
+        securityDomainsServiceBuilder.install();
     }
 
     private static boolean isEJBRemoteConnectorInstalled(final OperationContext context) {
