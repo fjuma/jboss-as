@@ -139,6 +139,7 @@ public interface EJB3SubsystemModel {
 
     // Elytron integration
     String APPLICATION_SECURITY_DOMAIN = "application-security-domain";
+    String REFERENCING_DEPLOYMENTS = "referencing-deployments";
     String SECURITY_DOMAIN = "security-domain";
     String SECURITY_DOMAIN_REF = "security-domain-ref";
 }
