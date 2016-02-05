@@ -2557,6 +2557,11 @@
 
         <dependency>
             <groupId>org.wildfly</groupId>
+            <artifactId>wildfly-jsf-parsers</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.wildfly</groupId>
             <artifactId>wildfly-jsr77</artifactId>
             <exclusions>
                 <exclusion>

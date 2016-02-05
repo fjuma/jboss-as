@@ -89,6 +89,7 @@ public class JSFDependencyProcessor implements DeploymentUnitProcessor {
         moduleSpecification.addSystemDependency(new ModuleDependency(moduleLoader, JSF_SUBSYSTEM, false, false, true, false));
 
         addJSFInjection(jsfVersion, moduleSpecification, moduleLoader);
+        addJSFParsers(jsfVersion, moduleSpecification, moduleLoader);
 
         WarMetaData warMetaData = deploymentUnit.getAttachment(WarMetaData.ATTACHMENT_KEY);
         if(warMetaData != null) {
@@ -135,6 +136,13 @@ public class JSFDependencyProcessor implements DeploymentUnitProcessor {
         ModuleDependency jsfInjectionDependency = new ModuleDependency(moduleLoader, jsfInjectionModule, false, true, true, false);
         jsfInjectionDependency.addImportFilter(PathFilters.getMetaInfFilter(), true);
         moduleSpecification.addSystemDependency(jsfInjectionDependency);
+    }
+
+    private void addJSFParsers(String jsfVersion, ModuleSpecification moduleSpecification, ModuleLoader moduleLoader) {
+        ModuleIdentifier jsfParsersModule = moduleIdFactory.getParsersModId(jsfVersion);
+        ModuleDependency jsfParsersDependency = new ModuleDependency(moduleLoader, jsfParsersModule, false, true, true, false);
+        jsfParsersDependency.addImportFilter(PathFilters.getMetaInfFilter(), true);
+        moduleSpecification.addSystemDependency(jsfParsersDependency);
     }
 
     // Add a flag to the sevlet context so that we know if we need to instantiate

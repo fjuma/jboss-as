@@ -41,6 +41,7 @@ public class JSFModuleIdFactory {
     private static final String API_MODULE = "javax.faces.api";
     private static final String IMPL_MODULE = "com.sun.jsf-impl";
     private static final String INJECTION_MODULE = "org.jboss.as.jsf-injection";
+    private static final String PARSERS_MODULE = "org.jboss.as.jsf-parsers";
 
     private static final JSFModuleIdFactory instance = new JSFModuleIdFactory();
 
@@ -50,6 +51,7 @@ public class JSFModuleIdFactory {
     private Map<String, ModuleIdentifier> apiIds = new HashMap<String, ModuleIdentifier>();
     private Map<String, ModuleIdentifier> implIds = new HashMap<String, ModuleIdentifier>();
     private Map<String, ModuleIdentifier> injectionIds = new HashMap<String, ModuleIdentifier>();
+    private Map<String, ModuleIdentifier> parsersIds = new HashMap<String, ModuleIdentifier>();
 
     private Set<String> allVersions = new HashSet<String>();
     private List<String> activeVersions = new ArrayList<String>();
@@ -95,6 +97,7 @@ public class JSFModuleIdFactory {
         implIds.put("main", ModuleIdentifier.create(IMPL_MODULE));
         apiIds.put("main", ModuleIdentifier.create(API_MODULE));
         injectionIds.put("main", ModuleIdentifier.create(INJECTION_MODULE));
+        parsersIds.put("main", ModuleIdentifier.create(PARSERS_MODULE));
 
         allVersions.add("main");
 
@@ -106,6 +109,7 @@ public class JSFModuleIdFactory {
             loadIds(moduleRootDir, apiIds, API_MODULE);
             loadIds(moduleRootDir, implIds, IMPL_MODULE);
             loadIds(moduleRootDir, injectionIds, INJECTION_MODULE);
+            loadIds(moduleRootDir, parsersIds, PARSERS_MODULE);
         }
         checkVersionIntegrity();
     }
@@ -132,7 +136,7 @@ public class JSFModuleIdFactory {
         }
     }
 
-    // make sure that each version has api, impl, and injection
+    // make sure that each version has api, impl, injection, and parsers
     private void checkVersionIntegrity() {
         activeVersions.addAll(allVersions);
 
@@ -149,6 +153,11 @@ public class JSFModuleIdFactory {
 
             if (!injectionIds.containsKey(version)) {
                 JSFLogger.ROOT_LOGGER.missingJSFModule(version, INJECTION_MODULE);
+                activeVersions.remove(version);
+            }
+
+            if (!parsersIds.containsKey(version)) {
+                JSFLogger.ROOT_LOGGER.missingJSFModule(version, PARSERS_MODULE);
                 activeVersions.remove(version);
             }
         }
@@ -176,6 +185,10 @@ public class JSFModuleIdFactory {
 
     ModuleIdentifier getInjectionModId(String jsfVersion) {
         return this.injectionIds.get(computeSlot(jsfVersion));
+    }
+
+    ModuleIdentifier getParsersModId(String jsfVersion) {
+        return this.parsersIds.get(computeSlot(jsfVersion));
     }
 
     boolean isValidJSFSlot(String slot) {
