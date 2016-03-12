@@ -19,18 +19,25 @@
 package org.jboss.as.jsf.subsystem;
 
 import org.jboss.as.controller.AttributeDefinition;
+import org.jboss.as.controller.ModelVersion;
 import org.jboss.as.controller.PersistentResourceDefinition;
 import org.jboss.as.controller.ReloadRequiredRemoveStepHandler;
 import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
+import org.jboss.as.controller.SubsystemRegistration;
 import org.jboss.as.controller.operations.common.GenericSubsystemDescribeHandler;
 import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.transform.description.DiscardAttributeChecker;
+import org.jboss.as.controller.transform.description.RejectAttributeChecker;
+import org.jboss.as.controller.transform.description.ResourceTransformationDescriptionBuilder;
+import org.jboss.as.controller.transform.description.TransformationDescription;
+import org.jboss.as.controller.transform.description.TransformationDescriptionBuilder;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 
 /**
  * Defines attributes and operations for the JSF Subsystem
@@ -40,6 +47,7 @@ import java.util.Collections;
 public class JSFResourceDefinition extends PersistentResourceDefinition {
 
     public static final String DEFAULT_SLOT_ATTR_NAME = "default-jsf-impl-slot";
+    public static final String DISALLOW_DOCTYPE_DECL_ATTR_NAME = "disallow-doctype-decl";
     public static final String DEFAULT_SLOT = "main";
 
     public static JSFResourceDefinition INSTANCE = new JSFResourceDefinition();
@@ -52,6 +60,11 @@ public class JSFResourceDefinition extends PersistentResourceDefinition {
             .setDefaultValue(new ModelNode(DEFAULT_SLOT))
             .build();
 
+    static final SimpleAttributeDefinition DISALLOW_DOCTYPE_DECL =
+            new SimpleAttributeDefinitionBuilder(DISALLOW_DOCTYPE_DECL_ATTR_NAME, ModelType.BOOLEAN, true)
+                    .setAllowExpression(true)
+                    .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                    .build();
 
     private JSFResourceDefinition() {
         super(JSFExtension.PATH_SUBSYSTEM,
@@ -59,6 +72,8 @@ public class JSFResourceDefinition extends PersistentResourceDefinition {
                 JSFSubsystemAdd.INSTANCE,
                 ReloadRequiredRemoveStepHandler.INSTANCE);
     }
+
+    private static final ModelVersion VERSION_1_1 = ModelVersion.create(1, 0);
 
     @Override
     public void registerOperations(ManagementResourceRegistration resourceRegistration) {
@@ -69,6 +84,17 @@ public class JSFResourceDefinition extends PersistentResourceDefinition {
 
     @Override
     public Collection<AttributeDefinition> getAttributes() {
-        return Collections.singleton(DEFAULT_JSF_IMPL_SLOT);
+        return Arrays.asList(DEFAULT_JSF_IMPL_SLOT, DISALLOW_DOCTYPE_DECL);
+    }
+
+    static void registerTransformers(SubsystemRegistration subsystemRegistration) {
+        registerTransformers_1_1(subsystemRegistration);
+    }
+
+    private static void registerTransformers_1_1(SubsystemRegistration subsystemRegistration) {
+        final ResourceTransformationDescriptionBuilder builder = TransformationDescriptionBuilder.Factory.createSubsystemInstance();
+        builder.getAttributeBuilder().setDiscard(DiscardAttributeChecker.UNDEFINED, DISALLOW_DOCTYPE_DECL);
+        builder.getAttributeBuilder().addRejectCheck(RejectAttributeChecker.DEFINED, DISALLOW_DOCTYPE_DECL);
+        TransformationDescription.Tools.register(builder.build(), subsystemRegistration, VERSION_1_1);
     }
 }

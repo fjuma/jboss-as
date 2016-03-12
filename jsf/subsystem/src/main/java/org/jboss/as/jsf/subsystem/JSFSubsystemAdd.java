@@ -50,16 +50,19 @@ class JSFSubsystemAdd extends AbstractBoottimeAddStepHandler {
     @Override
     protected void populateModel(ModelNode operation, ModelNode model) throws OperationFailedException {
         JSFResourceDefinition.DEFAULT_JSF_IMPL_SLOT.validateAndSet(operation, model);
+        JSFResourceDefinition.DISALLOW_DOCTYPE_DECL.validateAndSet(operation, model);
     }
 
     @Override
-    protected void performBoottime(OperationContext context, ModelNode operation, final ModelNode model) {
+    protected void performBoottime(OperationContext context, ModelNode operation, final ModelNode model) throws OperationFailedException {
+        final Boolean disallowDoctypeDecl = model.hasDefined(JSFResourceDefinition.DISALLOW_DOCTYPE_DECL_ATTR_NAME) ?
+                JSFResourceDefinition.DISALLOW_DOCTYPE_DECL.resolveModelAttribute(context, model).asBoolean() : null;
         context.addStep(new AbstractDeploymentChainStep() {
             protected void execute(DeploymentProcessorTarget processorTarget) {
                 processorTarget.addDeploymentProcessor(JSFExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_JSF_VERSION, new JSFVersionProcessor(model));
                 processorTarget.addDeploymentProcessor(JSFExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_JSF_SHARED_TLDS, new JSFSharedTldsProcessor());
                 processorTarget.addDeploymentProcessor(JSFExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_JSF_MANAGED_BEANS, new JSFManagedBeanProcessor());
-                processorTarget.addDeploymentProcessor(JSFExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_JSF_METADATA, new JSFMetadataProcessor());
+                processorTarget.addDeploymentProcessor(JSFExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_JSF_METADATA, new JSFMetadataProcessor(disallowDoctypeDecl));
                 processorTarget.addDeploymentProcessor(JSFExtension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_JSF, new JSFDependencyProcessor());
                 processorTarget.addDeploymentProcessor(JSFExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_JSF_MANAGED_BEANS, new JSFManagedBeanProcessor());
                 processorTarget.addDeploymentProcessor(JSFExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_JSF_CDI_EXTENSIONS, new JSFCdiExtensionDeploymentProcessor());
