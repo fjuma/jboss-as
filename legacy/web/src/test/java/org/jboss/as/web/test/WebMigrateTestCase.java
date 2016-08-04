@@ -69,6 +69,7 @@ import org.jboss.as.subsystem.test.AdditionalInitialization;
 import org.jboss.as.subsystem.test.KernelServices;
 import org.jboss.as.web.WebExtension;
 import org.jboss.dmr.ModelNode;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.wildfly.extension.io.IOExtension;
 import org.wildfly.extension.undertow.Constants;
@@ -86,6 +87,7 @@ public class WebMigrateTestCase extends AbstractSubsystemTest {
         super(WebExtension.SUBSYSTEM_NAME, new WebExtension());
     }
 
+    @Ignore
     @Test
     public void testMigrateOperation() throws Exception {
         String subsystemXml = readResource("subsystem-migrate-2.2.0.xml");
