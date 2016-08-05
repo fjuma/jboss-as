@@ -44,6 +44,7 @@ import org.jboss.dmr.ModelNode;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.jboss.shrinkwrap.api.spec.ResourceAdapterArchive;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -127,6 +128,7 @@ public class ReDeploymentTestCase extends ContainerResourceMgmtTestBase {
      *
      * @throws Throwable Thrown if case of an error
      */
+    @Ignore
     @Test
     public void testConfiguration() throws Throwable {
         deployer.deploy(deploymentName);
