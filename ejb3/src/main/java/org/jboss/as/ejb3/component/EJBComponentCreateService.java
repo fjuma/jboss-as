@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.jboss.as.core.security.ServerSecurityManager;
@@ -110,6 +111,7 @@ public class EJBComponentCreateService extends BasicComponentCreateService {
     private final InjectedValue<ControlPoint> controlPoint = new InjectedValue<>();
     private final InjectedValue<AtomicBoolean> exceptionLoggingEnabled = new InjectedValue<>();
     private final InjectedValue<ApplicationSecurityDomain> applicationSecurityDomain = new InjectedValue<>();
+    private final InjectedValue<Consumer> securityIdentityConsumer = new InjectedValue<>();
 
     private final ShutDownInterceptorFactory shutDownInterceptorFactory;
 
@@ -425,6 +427,14 @@ public class EJBComponentCreateService extends BasicComponentCreateService {
     public SecurityDomain getSecurityDomain() {
         ApplicationSecurityDomain applicationSecurityDomain = getApplicationSecurityDomain();
         return applicationSecurityDomain != null ? applicationSecurityDomain.getSecurityDomain() : null;
+    }
+
+    Injector<Consumer> getSecurityIdentityConsumerInjector() {
+        return securityIdentityConsumer;
+    }
+
+    public Consumer getSecurityIdentityConsumer() {
+        return securityIdentityConsumer.getOptionalValue();
     }
 
     public ShutDownInterceptorFactory getShutDownInterceptorFactory() {

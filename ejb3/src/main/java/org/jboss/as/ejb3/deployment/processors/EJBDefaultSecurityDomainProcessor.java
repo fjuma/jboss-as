@@ -46,10 +46,12 @@ public class EJBDefaultSecurityDomainProcessor implements DeploymentUnitProcesso
 
     private volatile String defaultSecurityDomainName;
     private volatile Predicate<String> knownSecurityDomain;
+    private volatile boolean outflowSecurityDomainsConfigured;
 
-    public EJBDefaultSecurityDomainProcessor(final String defaultSecurityDomainName, final Predicate<String> knownSecurityDomain) {
+    public EJBDefaultSecurityDomainProcessor(final String defaultSecurityDomainName, final Predicate<String> knownSecurityDomain, final boolean outflowSecurityDomainsConfigured) {
         this.defaultSecurityDomainName = defaultSecurityDomainName;
         this.knownSecurityDomain = knownSecurityDomain;
+        this.outflowSecurityDomainsConfigured = outflowSecurityDomainsConfigured;
     }
 
     @Override
@@ -74,6 +76,7 @@ public class EJBDefaultSecurityDomainProcessor implements DeploymentUnitProcesso
             if (componentDescription instanceof EJBComponentDescription) {
                 ((EJBComponentDescription) componentDescription).setDefaultSecurityDomain(defaultSecurityDomain);
                 ((EJBComponentDescription) componentDescription).setKnownSecurityDomainPredicate(knownSecurityDomain);
+                ((EJBComponentDescription) componentDescription).setOutflowSecurityDomainsConfigured(outflowSecurityDomainsConfigured);
             }
         }
     }

@@ -44,6 +44,7 @@ import javax.transaction.TransactionSynchronizationRegistry;
 import javax.transaction.UserTransaction;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 import org.jboss.as.core.security.ServerSecurityManager;
 import org.jboss.as.ee.component.BasicComponent;
@@ -123,6 +124,7 @@ public abstract class EJBComponent extends BasicComponent implements ServerActiv
 
     private final SecurityDomain securityDomain;
     private SecurityIdentity incomingRunAsIdentity;
+    private final Consumer<SecurityIdentity> securityIdentityConsumer;
 
     /**
      * Construct a new instance.
@@ -177,6 +179,7 @@ public abstract class EJBComponent extends BasicComponent implements ServerActiv
 
         this.securityDomain = ejbComponentCreateService.getSecurityDomain();
         this.incomingRunAsIdentity = null;
+        this.securityIdentityConsumer = ejbComponentCreateService.getSecurityIdentityConsumer();
     }
 
     protected <T> T createViewInstanceProxy(final Class<T> viewInterface, final Map<Object, Object> contextData) {
@@ -567,6 +570,10 @@ public abstract class EJBComponent extends BasicComponent implements ServerActiv
 
     public boolean isSecurityDomainKnown() {
         return securityDomain != null;
+    }
+
+    public Consumer<SecurityIdentity> getSecurityIdentityConsumer() {
+        return securityIdentityConsumer;
     }
 
     @Override

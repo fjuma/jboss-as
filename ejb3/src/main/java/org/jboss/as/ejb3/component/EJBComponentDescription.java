@@ -21,6 +21,8 @@
  */
 package org.jboss.as.ejb3.component;
 
+import static org.jboss.as.ejb3.subsystem.IdentityResourceDefinition.IDENTITY_CAPABILITY;
+
 import javax.ejb.EJBLocalObject;
 import javax.ejb.TimerService;
 import javax.ejb.TransactionAttributeType;
@@ -41,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import org.jboss.as.controller.capability.CapabilityServiceSupport;
@@ -271,6 +274,8 @@ public abstract class EJBComponentDescription extends ComponentDescription {
     private String policyContextID;
 
     private final ShutDownInterceptorFactory shutDownInterceptorFactory = new ShutDownInterceptorFactory();
+
+    private boolean outflowSecurityDomainsConfigured;
 
     /**
      * Construct a new instance.
@@ -695,6 +700,14 @@ public abstract class EJBComponentDescription extends ComponentDescription {
         return knownSecurityDomain == null ? false : knownSecurityDomain.test(getSecurityDomain());
     }
 
+    public void setOutflowSecurityDomainsConfigured(final boolean outflowSecurityDomainsConfigured) {
+        this.outflowSecurityDomainsConfigured = outflowSecurityDomainsConfigured;
+    }
+
+    public boolean isOutflowSecurityDomainsConfigured() {
+        return this.outflowSecurityDomainsConfigured;
+    }
+
     /**
      * Returns the security domain that is applicable for this bean. In the absence of any explicit
      * configuration of a security domain for this bean, this method returns the default security domain
@@ -884,11 +897,14 @@ public abstract class EJBComponentDescription extends ComponentDescription {
                     final EJBComponentCreateService ejbComponentCreateService = (EJBComponentCreateService) service;
                     final String securityDomainName = SecurityDomainDependencyConfigurator.this.ejbComponentDescription.getSecurityDomain();
                     if (SecurityDomainDependencyConfigurator.this.ejbComponentDescription.isSecurityDomainKnown()) {
+                        final DeploymentUnit deploymentUnit = context.getDeploymentUnit();
+                        final CapabilityServiceSupport support = deploymentUnit.getAttachment(org.jboss.as.server.deployment.Attachments.CAPABILITY_SERVICE_SUPPORT);
                         if (securityDomainName != null && ! securityDomainName.isEmpty()) {
-                            final DeploymentUnit deploymentUnit = context.getDeploymentUnit();
-                            final CapabilityServiceSupport support = deploymentUnit.getAttachment(org.jboss.as.server.deployment.Attachments.CAPABILITY_SERVICE_SUPPORT);
                             serviceBuilder.addDependency(support.getCapabilityServiceName(ApplicationSecurityDomainDefinition.APPLICATION_SECURITY_DOMAIN_CAPABILITY, securityDomainName),
                                     ApplicationSecurityDomain.class, ejbComponentCreateService.getApplicationSecurityDomainInjector());
+                        }
+                        if (outflowSecurityDomainsConfigured) {
+                            serviceBuilder.addDependency(support.getCapabilityServiceName(IDENTITY_CAPABILITY), Consumer.class, ejbComponentCreateService.getSecurityIdentityConsumerInjector());
                         }
                     } else {
                         if (securityDomainName != null && !securityDomainName.isEmpty()) {
