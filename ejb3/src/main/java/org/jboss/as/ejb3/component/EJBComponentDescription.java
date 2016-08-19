@@ -1115,6 +1115,7 @@ public abstract class EJBComponentDescription extends ComponentDescription {
 
     public HashMap<Integer, InterceptorFactory> getElytronInterceptorFactories(final String policyContextID) {
         final HashMap<Integer, InterceptorFactory> interceptorFactories = new HashMap<>(2);
+        final Set<String> roles = new HashSet<>();
 
         // First interceptor: security domain association
         interceptorFactories.put(InterceptorOrder.View.SECURITY_CONTEXT, SecurityDomainInterceptorFactory.INSTANCE);
@@ -1131,16 +1132,22 @@ public abstract class EJBComponentDescription extends ComponentDescription {
             final Set<String> extraRoles = securityRoles.getSecurityRoleNamesByPrincipal(runAsPrincipal);
             if (! extraRoles.isEmpty()) {
                 interceptorFactories.put(InterceptorOrder.View.EXTRA_PRINCIPAL_ROLES, new ImmediateInterceptorFactory(new RoleAddingInterceptor("ejb", RoleMapper.constant(Roles.fromSet(extraRoles)))));
+                roles.addAll(extraRoles);
             }
         }
 
         // Next interceptor: run-as-role
         if (runAsRole != null) {
             interceptorFactories.put(InterceptorOrder.View.RUN_AS_ROLE, new ImmediateInterceptorFactory(new RoleAddingInterceptor("ejb", RoleMapper.constant(Roles.fromSet(Collections.singleton(runAsRole))))));
+            roles.add(runAsRole);
         }
 
         // Next interceptor: security identity outflow
-        interceptorFactories.put(InterceptorOrder.View.SECURITY_IDENTITY_OUTFLOW, IdentityOutflowInterceptorFactory.INSTANCE);
+        if (! roles.isEmpty()) {
+            interceptorFactories.put(InterceptorOrder.View.SECURITY_IDENTITY_OUTFLOW, new IdentityOutflowInterceptorFactory("ejb", RoleMapper.constant(Roles.fromSet(roles))));
+        } else {
+            interceptorFactories.put(InterceptorOrder.View.SECURITY_IDENTITY_OUTFLOW, IdentityOutflowInterceptorFactory.INSTANCE);
+        }
 
         // Ignoring declared roles
         RoleMapper.constant(Roles.fromSet(getDeclaredRoles()));

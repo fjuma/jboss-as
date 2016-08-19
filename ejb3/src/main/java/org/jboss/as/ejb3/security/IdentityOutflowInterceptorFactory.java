@@ -32,6 +32,7 @@ import org.jboss.invocation.Interceptor;
 import org.jboss.invocation.InterceptorFactory;
 import org.jboss.invocation.InterceptorFactoryContext;
 import org.wildfly.security.auth.server.SecurityIdentity;
+import org.wildfly.security.authz.RoleMapper;
 
 /**
  * @author <a href="mailto:fjuma@redhat.com">Farah Juma</a>
@@ -39,6 +40,18 @@ import org.wildfly.security.auth.server.SecurityIdentity;
 public class IdentityOutflowInterceptorFactory extends ComponentInterceptorFactory {
 
     public static final InterceptorFactory INSTANCE = new IdentityOutflowInterceptorFactory();
+
+    private final String category;
+    private final RoleMapper roleMapper;
+
+    public IdentityOutflowInterceptorFactory() {
+        this(null, null);
+    }
+
+    public IdentityOutflowInterceptorFactory(final String category, final RoleMapper roleMapper) {
+        this.category = category;
+        this.roleMapper = roleMapper;
+    }
 
     @Override
     protected Interceptor create(final Component component, final InterceptorFactoryContext context) {
@@ -48,6 +61,6 @@ public class IdentityOutflowInterceptorFactory extends ComponentInterceptorFacto
 
         final EJBComponent ejbComponent = (EJBComponent) component;
         final Function<SecurityIdentity, Set<SecurityIdentity>> identityOutflowFunction = ejbComponent.getIdentityOutflowFunction();
-        return new IdentityOutflowInterceptor(identityOutflowFunction);
+        return new IdentityOutflowInterceptor(identityOutflowFunction, category, roleMapper);
     }
 }
