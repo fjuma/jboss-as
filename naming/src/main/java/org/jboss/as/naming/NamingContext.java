@@ -51,6 +51,7 @@ import javax.naming.spi.NamingManager;
 import javax.naming.spi.ObjectFactory;
 import javax.naming.spi.ResolveResult;
 
+import org.wildfly.naming.client.SimpleName;
 import org.wildfly.naming.java.permission.JndiPermission;
 import org.jboss.as.naming.context.ObjectFactoryBuilder;
 import org.jboss.as.naming.logging.NamingLogger;
@@ -176,7 +177,8 @@ public class NamingContext implements EventContext {
      * @param environment the environment to use
      */
     public NamingContext(final NamingStore namingStore, final Hashtable environment) {
-        this(new CompositeName(), namingStore, environment);
+        //this(new CompositeName(), namingStore, environment);
+        this(new SimpleName(), namingStore, environment);
     }
 
     /** {@inheritDoc} */
