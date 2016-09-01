@@ -80,6 +80,7 @@ public class ServiceBasedNamingStore implements NamingStore {
             return new NamingContext(EMPTY_NAME, this, null);
         }
         final ServiceName lookupName = buildServiceName(name);
+        // FJ final ServiceName lookupName = ServiceName.of("jboss", "naming", "context", "java", "jboss", "exported", "after", "Name3");
         Object obj = lookup(name.toString(), lookupName, dereference);
         if (obj == null) {
             final ServiceName lower = boundServices.lower(lookupName);
