@@ -22,7 +22,6 @@
 
 package org.jboss.as.ejb3.subsystem;
 
-import static org.jboss.as.controller.capability.RuntimeCapability.buildDynamicCapabilityName;
 import static org.jboss.as.ejb3.subsystem.EJB3SubsystemRootResourceDefinition.addOutflowSecurityDomains;
 
 import java.util.ArrayList;
@@ -80,7 +79,7 @@ public class IdentityResourceDefinition extends SimpleResourceDefinition {
     public static final StringListAttributeDefinition OUTFLOW_SECURITY_DOMAINS = new StringListAttributeDefinition.Builder(EJB3SubsystemModel.OUTFLOW_SECURITY_DOMAINS)
             .setAllowNull(true)
             .setMinSize(1)
-            .setFlags(AttributeAccess.Flag.RESTART_RESOURCE_SERVICES)
+            .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
             .setCapabilityReference(SECURITY_DOMAIN_CAPABILITY, IDENTITY_CAPABILITY, false)
             .build();
 
@@ -97,7 +96,7 @@ public class IdentityResourceDefinition extends SimpleResourceDefinition {
         super(parameters
                 .setAddHandler(add)
                 .setRemoveHandler(new ReloadRequiredRemoveStepHandler(IDENTITY_RUNTIME_CAPABILITY))
-                .setRemoveRestartLevel(OperationEntry.Flag.RESTART_RESOURCE_SERVICES));
+                .setRemoveRestartLevel(OperationEntry.Flag.RESTART_ALL_SERVICES));
     }
 
     @Override
@@ -131,7 +130,7 @@ public class IdentityResourceDefinition extends SimpleResourceDefinition {
                     .setInitialMode(Mode.ACTIVE);
             for (String outflowSecurityDomain : outflowSecurityDomains) {
                 serviceBuilder.addDependency(context.getCapabilityServiceName(
-                                buildDynamicCapabilityName(SECURITY_DOMAIN_CAPABILITY, outflowSecurityDomain), SecurityDomain.class),
+                                SECURITY_DOMAIN_CAPABILITY, outflowSecurityDomain, SecurityDomain.class),
                         SecurityDomain.class, identityService.createOutflowSecurityDomainInjector());
             }
             serviceBuilder.install();
