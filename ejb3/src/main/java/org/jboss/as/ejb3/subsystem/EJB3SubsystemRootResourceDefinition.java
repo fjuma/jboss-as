@@ -25,6 +25,14 @@ package org.jboss.as.ejb3.subsystem;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADD;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUBSYSTEM;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
+
 import org.jboss.as.controller.AbstractAddStepHandler;
 import org.jboss.as.controller.AbstractWriteAttributeHandler;
 import org.jboss.as.controller.ModelVersion;
@@ -164,10 +172,13 @@ public class EJB3SubsystemRootResourceDefinition extends SimpleResourceDefinitio
     public static final RuntimeCapability<Void> CLUSTERED_SINGLETON_CAPABILITY =  RuntimeCapability.Builder.of(
             "org.wildfly.ejb3.clustered.singleton", Void.class).build();
 
+    private static final Set<String> knownApplicationSecurityDomains = Collections.synchronizedSet(new HashSet<>());
+    private static final List<String> outflowSecurityDomains = Collections.synchronizedList(new ArrayList<>());
+
     private static final ApplicationSecurityDomainDefinition APPLICATION_SECURITY_DOMAIN = ApplicationSecurityDomainDefinition.INSTANCE;
     private static final IdentityResourceDefinition IDENTITY = IdentityResourceDefinition.INSTANCE;
     private static final EJBDefaultSecurityDomainProcessor defaultSecurityDomainDeploymentProcessor = new EJBDefaultSecurityDomainProcessor(null,
-            APPLICATION_SECURITY_DOMAIN.getKnownSecurityDomainPredicate(), IDENTITY.getOutflowSecurityDomainsConfiguredSupplier());
+            getKnownSecurityDomainPredicate(), getOutflowSecurityDomainsConfiguredSupplier());
     private static final MissingMethodPermissionsDenyAccessMergingProcessor missingMethodPermissionsDenyAccessMergingProcessor = new MissingMethodPermissionsDenyAccessMergingProcessor();
 
 
@@ -186,6 +197,8 @@ public class EJB3SubsystemRootResourceDefinition extends SimpleResourceDefinitio
                 OperationEntry.Flag.RESTART_ALL_SERVICES, OperationEntry.Flag.RESTART_ALL_SERVICES);
         this.registerRuntimeOnly = registerRuntimeOnly;
         this.pathManager = pathManager;
+        knownApplicationSecurityDomains.clear();
+        outflowSecurityDomains.clear();
     }
 
     static final SimpleAttributeDefinition[] ATTRIBUTES = {
@@ -364,6 +377,26 @@ public class EJB3SubsystemRootResourceDefinition extends SimpleResourceDefinitio
         ApplicationSecurityDomainDefinition.registerTransformers_4_0(builder);
         IdentityResourceDefinition.registerTransformers_4_0(builder);
         TransformationDescription.Tools.register(builder.build(), subsystemRegistration, VERSION_4_0_0);
+    }
+
+    private static Predicate<String> getKnownSecurityDomainPredicate() {
+        return knownApplicationSecurityDomains::contains;
+    }
+
+    static void addKnownApplicationSecurityDomain(String knownApplicationSecurityDomain) {
+        knownApplicationSecurityDomains.add(knownApplicationSecurityDomain);
+    }
+
+    static void removeKnownApplicationSecurityDomain(String knownApplicationSecurityDomain) {
+        knownApplicationSecurityDomains.remove(knownApplicationSecurityDomain);
+    }
+
+    static BooleanSupplier getOutflowSecurityDomainsConfiguredSupplier() {
+        return () -> ! outflowSecurityDomains.isEmpty();
+    }
+
+    static void addOutflowSecurityDomains(List<String> securityDomains) {
+        outflowSecurityDomains.addAll(securityDomains);
     }
 
     private static class EJB3ThreadFactoryResolver extends ThreadFactoryResolver.SimpleResolver {

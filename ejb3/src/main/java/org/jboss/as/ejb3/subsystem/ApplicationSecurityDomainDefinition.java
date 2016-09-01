@@ -23,11 +23,8 @@
 package org.jboss.as.ejb3.subsystem;
 
 import static org.jboss.as.controller.capability.RuntimeCapability.buildDynamicCapabilityName;
-
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.function.Predicate;
+import static org.jboss.as.ejb3.subsystem.EJB3SubsystemRootResourceDefinition.addKnownApplicationSecurityDomain;
+import static org.jboss.as.ejb3.subsystem.EJB3SubsystemRootResourceDefinition.removeKnownApplicationSecurityDomain;
 
 import org.jboss.as.controller.AbstractAddStepHandler;
 import org.jboss.as.controller.AttributeDefinition;
@@ -91,8 +88,6 @@ public class ApplicationSecurityDomainDefinition extends SimpleResourceDefinitio
 
     static final ApplicationSecurityDomainDefinition INSTANCE = new ApplicationSecurityDomainDefinition();
 
-    private static final Set<String> knownApplicationSecurityDomains = Collections.synchronizedSet(new HashSet<>());
-
     private ApplicationSecurityDomainDefinition() {
         this(new Parameters(PathElement.pathElement(EJB3SubsystemModel.APPLICATION_SECURITY_DOMAIN), EJB3Extension.getResourceDescriptionResolver(EJB3SubsystemModel.APPLICATION_SECURITY_DOMAIN))
                 .setCapabilities(APPLICATION_SECURITY_DOMAIN_RUNTIME_CAPABILITY), new AddHandler());
@@ -120,7 +115,7 @@ public class ApplicationSecurityDomainDefinition extends SimpleResourceDefinitio
         @Override
         protected void populateModel(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
             super.populateModel(context, operation, resource);
-            knownApplicationSecurityDomains.add(context.getCurrentAddressValue());
+            addKnownApplicationSecurityDomain(context.getCurrentAddressValue());
         }
 
         @Override
@@ -149,7 +144,7 @@ public class ApplicationSecurityDomainDefinition extends SimpleResourceDefinitio
         @Override
         protected void performRemove(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
             super.performRemove(context, operation, model);
-            knownApplicationSecurityDomains.remove(context.getCurrentAddressValue());
+            removeKnownApplicationSecurityDomain(context.getCurrentAddressValue());
         }
 
         @Override
@@ -179,10 +174,6 @@ public class ApplicationSecurityDomainDefinition extends SimpleResourceDefinitio
             }
             context.getResult().set(deploymentList);
         }
-    }
-
-    Predicate<String> getKnownSecurityDomainPredicate() {
-        return knownApplicationSecurityDomains::contains;
     }
 
     static void registerTransformers_1_2_0_and_1_3_0(ResourceTransformationDescriptionBuilder parent) {

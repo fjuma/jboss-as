@@ -23,13 +23,12 @@
 package org.jboss.as.ejb3.subsystem;
 
 import static org.jboss.as.controller.capability.RuntimeCapability.buildDynamicCapabilityName;
+import static org.jboss.as.ejb3.subsystem.EJB3SubsystemRootResourceDefinition.addOutflowSecurityDomains;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -89,8 +88,6 @@ public class IdentityResourceDefinition extends SimpleResourceDefinition {
 
     private static final AttributeDefinition[] ATTRIBUTES = new AttributeDefinition[] { OUTFLOW_SECURITY_DOMAINS };
 
-    private static List<String> outflowSecurityDomains = Collections.synchronizedList(new ArrayList<>());
-
     private IdentityResourceDefinition() {
         this(new Parameters(EJB3SubsystemModel.IDENTITY_PATH, EJB3Extension.getResourceDescriptionResolver(EJB3SubsystemModel.IDENTITY))
                 .setCapabilities(IDENTITY_RUNTIME_CAPABILITY), new AddHandler());
@@ -113,6 +110,8 @@ public class IdentityResourceDefinition extends SimpleResourceDefinition {
 
     private static class AddHandler extends AbstractAddStepHandler {
 
+        private List<String> outflowSecurityDomains;
+
         private AddHandler() {
             super(IDENTITY_RUNTIME_CAPABILITY, OUTFLOW_SECURITY_DOMAINS);
         }
@@ -121,6 +120,7 @@ public class IdentityResourceDefinition extends SimpleResourceDefinition {
         protected void populateModel(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
             super.populateModel(context, operation, resource);
             outflowSecurityDomains = OUTFLOW_SECURITY_DOMAINS.unwrap(context, resource.getModel());
+            addOutflowSecurityDomains(outflowSecurityDomains);
         }
 
         @Override
@@ -184,10 +184,6 @@ public class IdentityResourceDefinition extends SimpleResourceDefinition {
             return injectedValue;
         }
 
-    }
-
-    BooleanSupplier getOutflowSecurityDomainsConfiguredSupplier() {
-        return () -> ! outflowSecurityDomains.isEmpty();
     }
 
     static void registerTransformers_1_2_0_and_1_3_0(ResourceTransformationDescriptionBuilder parent) {
