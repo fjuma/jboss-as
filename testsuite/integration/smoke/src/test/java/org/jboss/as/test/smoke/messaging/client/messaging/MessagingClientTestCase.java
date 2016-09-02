@@ -59,6 +59,7 @@ import org.junit.runner.RunWith;
  * @author Emanuel Muckenhuber
  * @author Kabir Khan
  */
+@Ignore
 @RunWith(Arquillian.class)
 @RunAsClient
 public class MessagingClientTestCase {

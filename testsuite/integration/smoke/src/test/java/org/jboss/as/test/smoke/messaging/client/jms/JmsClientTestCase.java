@@ -53,7 +53,7 @@ import org.jboss.as.test.integration.common.jms.JMSOperations;
 import org.jboss.as.test.integration.common.jms.JMSOperationsProvider;
 import org.junit.After;
 import org.junit.Before;
-//import org.junit.Ignore;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -62,7 +62,7 @@ import org.junit.runner.RunWith;
  *
  * @author Emanuel Muckenhuber
  */
-//@Ignore
+@Ignore
 @RunWith(Arquillian.class)
 @RunAsClient
 public class JmsClientTestCase {
