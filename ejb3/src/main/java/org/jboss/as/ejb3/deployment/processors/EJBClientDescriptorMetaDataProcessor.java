@@ -23,12 +23,18 @@
 package org.jboss.as.ejb3.deployment.processors;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import javax.security.auth.callback.CallbackHandler;
+
+import org.jboss.as.domain.management.CallbackHandlerFactory;
+import org.jboss.as.domain.management.SecurityRealm;
 import org.jboss.as.ee.metadata.EJBClientDescriptorMetaData;
 import org.jboss.as.ee.structure.Attachments;
 import org.jboss.as.ejb3.deployment.EjbDeploymentAttachmentKeys;
@@ -42,14 +48,20 @@ import org.jboss.as.server.deployment.DeploymentPhaseContext;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
+import org.jboss.ejb.client.ClusterNodeSelector;
+import org.jboss.ejb.client.EJBClientCluster;
 import org.jboss.ejb.client.EJBTransportProvider;
 import org.jboss.modules.Module;
 import org.jboss.msc.inject.InjectionException;
 import org.jboss.msc.inject.Injector;
 import org.jboss.msc.service.ServiceBuilder;
+import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
+import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.service.ServiceTarget;
 import org.jboss.msc.value.InjectedValue;
+import org.jboss.remoting3.RemotingOptions;
+import org.wildfly.security.auth.client.AuthenticationConfiguration;
 import org.xnio.Option;
 import org.xnio.OptionMap;
 
@@ -162,20 +174,48 @@ public class EJBClientDescriptorMetaDataProcessor implements DeploymentUnitProce
             serviceBuilder.addDependency(profileServiceName, RemotingProfileService.class, service.getProfileServiceInjector());
         }
         // these items are the same no matter how we were configured
-        // TODO
+        // FJ come back to this
         final String deploymentNodeSelector = ejbClientDescriptorMetaData.getDeploymentNodeSelector();
         final long invocationTimeout = ejbClientDescriptorMetaData.getInvocationTimeout();
         service.setInvocationTimeout(invocationTimeout);
         final Collection<EJBClientDescriptorMetaData.ClusterConfig> clusterConfigs = ejbClientDescriptorMetaData.getClusterConfigs();
+        final List<EJBClientCluster> clientClusters = new ArrayList<>(clusterConfigs.size());
         for (EJBClientDescriptorMetaData.ClusterConfig clusterConfig : clusterConfigs) {
+            final EJBClientCluster.Builder clientClusterBuilder = new EJBClientCluster.Builder();
+
             final String clusterName = clusterConfig.getClusterName();
+            clientClusterBuilder.setName(clusterName);
+
             final long maxAllowedConnectedNodes = clusterConfig.getMaxAllowedConnectedNodes();
-            final String clusterNodeSelector = clusterConfig.getNodeSelector();
+            clientClusterBuilder.setMaximumConnectedNodes(maxAllowedConnectedNodes);
+
+            final String clusterNodeSelectorClassName = clusterConfig.getNodeSelector();
+            if (clusterNodeSelectorClassName != null) {
+                clientClusterBuilder.setClusterNodeSelector(getClusterNodeSelector(clusterNodeSelectorClassName, clusterName, module.getClassLoader()));
+            }
+
             final Properties clusterChannelCreationOptions = clusterConfig.getChannelCreationOptions();
+            // FJ come back to this
+            final OptionMap clusterChannelCreationOptionMap = getOptionMapFromProperties(clusterChannelCreationOptions, EJBClientDescriptorMetaDataProcessor.class.getClassLoader());
             final Properties clusterConnectionOptions = clusterConfig.getConnectionOptions();
+            final OptionMap clusterConnectionOptionMap = getOptionMapFromProperties(clusterConnectionOptions, EJBClientDescriptorMetaDataProcessor.class.getClassLoader());
+
             final long clusterConnectTimeout = clusterConfig.getConnectTimeout();
+            clientClusterBuilder.setConnectTimeoutMilliseconds(clusterConnectTimeout);
+
             final String clusterSecurityRealm = clusterConfig.getSecurityRealm();
             final String clusterUserName = clusterConfig.getUserName();
+
+            AuthenticationConfiguration authenticationConfiguration = AuthenticationConfiguration.EMPTY;
+            CallbackHandler callbackHandler = getCallbackHandler(phaseContext.getServiceRegistry(), clusterUserName, clusterSecurityRealm);
+            if (callbackHandler != null) {
+                authenticationConfiguration = authenticationConfiguration.useCallbackHandler(callbackHandler);
+            }
+            if (clusterConnectionOptionMap != null) {
+                RemotingOptions.mergeOptionsIntoAuthenticationConfiguration(clusterConnectionOptionMap, authenticationConfiguration);
+            }
+
+            // FJ come back to this
             final Collection<EJBClientDescriptorMetaData.ClusterNodeConfig> clusterNodeConfigs = clusterConfig.getClusterNodeConfigs();
             for (EJBClientDescriptorMetaData.ClusterNodeConfig clusterNodeConfig : clusterNodeConfigs) {
                 final String nodeName = clusterNodeConfig.getNodeName();
@@ -185,7 +225,13 @@ public class EJBClientDescriptorMetaDataProcessor implements DeploymentUnitProce
                 final String securityRealm = clusterNodeConfig.getSecurityRealm();
                 final String userName = clusterNodeConfig.getUserName();
             }
+
+            clientClusterBuilder.setOverrideConfiguration(authenticationConfiguration);
+
+            final EJBClientCluster clientCluster = clientClusterBuilder.build();
+            clientClusters.add(clientCluster);
         }
+        service.setEJBClientClusters(clientClusters);
 
         // install the service
         serviceBuilder.install();
@@ -224,6 +270,29 @@ public class EJBClientDescriptorMetaDataProcessor implements DeploymentUnitProce
             }
         }
         return optionMapBuilder.getMap();
+    }
+
+    private ClusterNodeSelector getClusterNodeSelector(final String clusterNodeSelectorClassName, final String clusterName, final ClassLoader classLoader) {
+        try {
+            return classLoader.loadClass(clusterNodeSelectorClassName).asSubclass(ClusterNodeSelector.class).getConstructor().newInstance();
+        } catch (Exception e) {
+            throw EjbLogger.ROOT_LOGGER.failureDuringLoadOfClusterNodeSelector(clusterNodeSelectorClassName, clusterName, e);
+        }
+    }
+
+    private CallbackHandler getCallbackHandler(final ServiceRegistry serviceRegistry, final String clusterUserName, final String clusterSecurityRealm) {
+        if (clusterSecurityRealm != null && ! clusterSecurityRealm.trim().isEmpty()) {
+            final ServiceName securityRealmServiceName = SecurityRealm.ServiceUtil.createServiceName(clusterSecurityRealm);
+            final ServiceController<SecurityRealm> securityRealmController = (ServiceController<SecurityRealm>) serviceRegistry.getService(securityRealmServiceName);
+            if (securityRealmController != null) {
+                final SecurityRealm securityRealm = securityRealmController.getValue();
+                final CallbackHandlerFactory cbhFactory;
+                if (securityRealm != null && (cbhFactory = securityRealm.getSecretCallbackHandlerFactory()) != null && clusterUserName != null) {
+                    return cbhFactory.getCallbackHandler(clusterUserName);
+                }
+            }
+        }
+        return null;
     }
 
 }

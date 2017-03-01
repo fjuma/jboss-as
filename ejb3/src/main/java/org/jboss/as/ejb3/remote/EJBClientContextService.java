@@ -26,8 +26,10 @@ import static java.security.AccessController.doPrivileged;
 
 import java.net.URI;
 import java.security.PrivilegedAction;
+import java.util.List;
 
 import org.jboss.as.ejb3.subsystem.EJBClientConfiguratorService;
+import org.jboss.ejb.client.EJBClientCluster;
 import org.jboss.ejb.client.EJBClientConnection;
 import org.jboss.ejb.client.EJBClientContext;
 import org.jboss.ejb.client.EJBTransportProvider;
@@ -66,6 +68,7 @@ public final class EJBClientContextService implements Service<EJBClientContextSe
      */
     private final boolean makeGlobal;
     private long invocationTimeout;
+    private List<EJBClientCluster> clientClusters = null;
 
     public EJBClientContextService(final boolean makeGlobal) {
         this.makeGlobal = makeGlobal;
@@ -100,6 +103,12 @@ public final class EJBClientContextService implements Service<EJBClientContextSe
             final EJBClientConnection.Builder connBuilder = new EJBClientConnection.Builder();
             connBuilder.setDestination(appClientUri.getOptionalValue());
             builder.addClientConnection(connBuilder.build());
+        }
+
+        if (clientClusters != null) {
+            for (EJBClientCluster clientCluster : clientClusters) {
+                builder.addClientCluster(clientCluster);
+            }
         }
 
         clientContext = builder.build();
@@ -148,5 +157,9 @@ public final class EJBClientContextService implements Service<EJBClientContextSe
 
     public void setInvocationTimeout(final long invocationTimeout) {
         this.invocationTimeout = invocationTimeout;
+    }
+
+    public void setEJBClientClusters(final List<EJBClientCluster> clientClusters) {
+        this.clientClusters = clientClusters;
     }
 }
