@@ -7,7 +7,7 @@
     <group qualifier="manual-mode">
         <container qualifier="default-jbossas" default="true" mode="manual">
             <configuration>
-                <property name="jbossHome">${basedir}/target/jbossas</property>
+                <property name="jbossHome">/home/fjuma/Documents/wildfly-security-incubator/wildfly/testsuite/integration/manualmode/target/jbossas</property>
                 <property name="javaVmArguments">${server.jvm.args} -Djboss.inst=${basedir}/target/jbossas -Djboss.node.name=default-jbossas</property>
                 <property name="serverConfig">${jboss.server.config.file.name:standalone-ha.xml}</property>
                 <property name="jbossArguments">${jboss.args}</property>
@@ -23,7 +23,7 @@
 
         <container qualifier="jbossas-non-clustered" default="false" mode="manual">
             <configuration>
-                <property name="jbossHome">${basedir}/target/jbossas</property>
+                <property name="jbossHome">/home/fjuma/Documents/wildfly-security-incubator/wildfly/testsuite/integration/manualmode/target/jbossas</property>
                 <property name="javaVmArguments">${server.jvm.args} -Djboss.inst=${basedir}/target/jbossas -Djboss.node.name=default-jbossas</property>
                 <property name="serverConfig">standalone.xml</property>
                 <property name="jbossArguments">${jboss.args}</property>
@@ -39,8 +39,8 @@
 
         <container qualifier="jbossas-with-remote-outbound-connection" default="false" mode="manual">
             <configuration>
-                <property name="jbossHome">${basedir}/target/jbossas-with-remote-outbound-connection</property>
-                <property name="javaVmArguments">${server.jvm.args} -Djboss.inst=${basedir}/target/jbossas-with-remote-outbound-connection -Djboss.node.name=jbossas-with-remote-outbound-connection</property>
+                <property name="jbossHome">/home/fjuma/Documents/wildfly-security-incubator/wildfly/testsuite/integration/manualmode/target/jbossas-with-remote-outbound-connection</property>
+                <property name="javaVmArguments">${server.jvm.args} -Djboss.inst=${basedir}/target/jbossas-with-remote-outbound-connection -Djboss.node.name=jbossas-with-remote-outbound-connection -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005</property>
                 <property name="serverConfig">${jboss.server.config.file.name:standalone-ha.xml}</property>
                 <property name="jbossArguments">${jboss.args}</property>
                 <property name="allowConnectingToRunningServer">true</property>
@@ -55,7 +55,7 @@
 
         <container qualifier="jbossas-with-remote-outbound-connection-non-clustered" default="false" mode="manual">
             <configuration>
-                <property name="jbossHome">${basedir}/target/jbossas-with-remote-outbound-connection</property>
+                <property name="jbossHome">/home/fjuma/Documents/wildfly-security-incubator/wildfly/testsuite/integration/manualmode/target/jbossas-with-remote-outbound-connection</property>
                 <property name="javaVmArguments">${server.jvm.args} -Djboss.inst=${basedir}/target/jbossas-with-remote-outbound-connection -Djboss.node.name=jbossas-with-remote-outbound-connection</property>
                 <property name="serverConfig">standalone.xml</property>
                 <property name="jbossArguments">${jboss.args}</property>
@@ -71,7 +71,7 @@
 
         <container qualifier="jbossas-layered" default="false" mode="manual">
             <configuration>
-                <property name="jbossHome">${basedir}/target/jbossas-layered</property>
+                <property name="jbossHome">/home/fjuma/Documents/wildfly-security-incubator/wildfly/testsuite/integration/manualmode/target/jbossas-layered</property>
                 <property name="javaVmArguments">${server.jvm.args} -Djboss.inst=${basedir}/target/jbossas-layered -Djboss.node.name=jbossas-layered</property>
                 <property name="serverConfig">${jboss.server.config.file.name:standalone-ha.xml}</property>
                 <property name="jbossArguments">${jboss.args}</property>
@@ -88,7 +88,7 @@
 
         <container qualifier="jbossas-messaging-ha-server1" default="false" mode="manual">
             <configuration>
-                <property name="jbossHome">${basedir}/target/jbossas-messaging-ha-server1</property>
+                <property name="jbossHome">/home/fjuma/Documents/wildfly-security-incubator/wildfly/testsuite/integration/manualmode/target/jbossas-messaging-ha-server1</property>
                 <property name="javaVmArguments">${server.jvm.args} -Djboss.inst=${basedir}/target/jbossas-messaging-ha-server1 -Djboss.node.name=default-jbossas-messaging-ha-server1</property>
                 <property name="serverConfig">standalone-full-ha.xml</property>
                 <property name="jbossArguments">${jboss.args}</property>
@@ -104,7 +104,7 @@
 
         <container qualifier="jbossas-messaging-ha-server2" default="false" mode="manual">
             <configuration>
-                <property name="jbossHome">${basedir}/target/jbossas-messaging-ha-server2</property>
+                <property name="jbossHome">/home/fjuma/Documents/wildfly-security-incubator/wildfly/testsuite/integration/manualmode/target/jbossas-messaging-ha-server2</property>
                 <property name="javaVmArguments">${server.jvm.args} -Djboss.socket.binding.port-offset=100 -Djboss.inst=${basedir}/target/jbossas-messaging-ha-server2 -Djboss.node.name=default-jbossas-messaging-ha-server2</property>
                 <property name="serverConfig">standalone-full-ha.xml</property>
                 <property name="jbossArguments">${jboss.args}</property>
@@ -120,7 +120,7 @@
 
         <container qualifier="jbossas-admin-only" default="false" mode="manual">
             <configuration>
-                <property name="jbossHome">${basedir}/target/jbossas</property>
+                <property name="jbossHome">/home/fjuma/Documents/wildfly-security-incubator/wildfly/testsuite/integration/manualmode/target/jbossas</property>
                 <property name="javaVmArguments">${server.jvm.args} -Djboss.inst=${basedir}/target/jbossas -Djboss.node.name=default-jbossas</property>
                 <property name="serverConfig">${jboss.server.config.file.name:standalone-ha.xml}</property>
                 <property name="jbossArguments">${jboss.args}</property>
