@@ -78,6 +78,8 @@ public abstract class ClusterAbstractTestCase implements ClusteringTestConstants
     @ArquillianResource
     protected Deployer deployer;
 
+    private String ejbClientPropertiesFile;
+
     // Framework contract methods
 
     /**

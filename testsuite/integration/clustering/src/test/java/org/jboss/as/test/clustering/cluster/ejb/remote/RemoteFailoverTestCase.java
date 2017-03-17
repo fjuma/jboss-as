@@ -45,6 +45,7 @@ import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.container.test.api.TargetsContainer;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.junit.InSequence;
+import org.jboss.as.test.clustering.NodeUtil;
 import org.jboss.as.test.clustering.cluster.ClusterAbstractTestCase;
 import org.jboss.as.test.clustering.cluster.ejb.remote.bean.Incrementor;
 import org.jboss.as.test.clustering.cluster.ejb.remote.bean.InfinispanExceptionThrowingIncrementorBean;
@@ -55,6 +56,7 @@ import org.jboss.as.test.clustering.cluster.ejb.remote.bean.StatefulIncrementorB
 import org.jboss.as.test.clustering.cluster.ejb.remote.bean.StatelessIncrementorBean;
 import org.jboss.as.test.clustering.ejb.EJBDirectory;
 import org.jboss.as.test.clustering.ejb.RemoteEJBDirectory;
+import org.jboss.as.test.integration.security.common.Utils;
 import org.jboss.as.test.shared.TimeoutUtil;
 import org.jboss.as.test.shared.util.DisableInvocationTestUtil;
 import org.jboss.ejb.client.legacy.JBossEJBProperties;
@@ -62,7 +64,9 @@ import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -79,9 +83,11 @@ public class RemoteFailoverTestCase extends ClusterAbstractTestCase {
     private static final String CLIENT_PROPERTIES = "org/jboss/as/test/clustering/cluster/ejb/remote/jboss-ejb-client.properties";
     private static final String SECURE_CLIENT_PROPERTIES = "org/jboss/as/test/clustering/cluster/ejb/remote/jboss-ejb-client-secure.properties";
 
-    private static final int COUNT = 20;
+    private static final int COUNT = 3;
     private static final long CLIENT_TOPOLOGY_UPDATE_WAIT = TimeoutUtil.adjust(5000);
     private static final long INVOCATION_WAIT = TimeoutUtil.adjust(10);
+
+    private String ejbClientPropertiesFile;
 
     @BeforeClass
     public static void beforeClass() {
@@ -109,6 +115,20 @@ public class RemoteFailoverTestCase extends ClusterAbstractTestCase {
                 new PropertyPermission(NODE_NAME_PROPERTY, "read")
         ), "permissions.xml");
         return jar;
+    }
+
+    @Before
+    public void beforeTestMethod() {
+        ejbClientPropertiesFile = Utils.setSystemProperty("jboss.ejb.client.properties.file.path", "clustering/src/test/java/org/jboss/as/test/clustering/cluster/ejb/remote/jboss-ejb-client-secure.properties");
+        NodeUtil.start(this.controller, CONTAINERS);
+        NodeUtil.deploy(this.deployer, DEPLOYMENTS);
+    }
+
+    @After
+    public void afterTestMethod() {
+        Utils.setSystemProperty("jboss.ejb.client.properties.file.path", ejbClientPropertiesFile);
+        NodeUtil.start(this.controller, CONTAINERS);
+        NodeUtil.undeploy(this.deployer, DEPLOYMENTS);
     }
 
     @InSequence(1)

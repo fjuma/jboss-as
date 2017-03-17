@@ -38,7 +38,7 @@
         </configuration>
     </container>
 
-    <group qualifier="clustering-all">
+    <group qualifier="clustering-alls">
 
         <container qualifier="container-0" mode="custom" managed="false" default="true">
             <configuration>

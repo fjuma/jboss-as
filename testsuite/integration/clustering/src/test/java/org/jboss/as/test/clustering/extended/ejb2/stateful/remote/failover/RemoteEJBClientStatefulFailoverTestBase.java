@@ -28,6 +28,7 @@ import org.jboss.as.test.clustering.EJBClientContextSelector;
 import org.jboss.as.test.clustering.cluster.ClusterAbstractTestCase;
 import org.jboss.as.test.clustering.ejb.EJBDirectory;
 import org.jboss.as.test.clustering.ejb.RemoteEJBDirectory;
+import org.jboss.as.test.integration.security.common.Utils;
 import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -49,6 +50,8 @@ public abstract class RemoteEJBClientStatefulFailoverTestBase extends ClusterAbs
     protected static EJBDirectory singletonDirectory;
     protected static EJBDirectory directory;
 
+    private String ejbClientPropertiesFile;
+
     protected static Archive<?> createDeploymentSingleton() {
         final JavaArchive jar = ShrinkWrap.create(JavaArchive.class, ARCHIVE_NAME_SINGLE + ".jar");
         jar.addClasses(CounterSingleton.class, CounterSingletonRemote.class);
@@ -69,6 +72,7 @@ public abstract class RemoteEJBClientStatefulFailoverTestBase extends ClusterAbs
 
     @Override
     public void beforeTestMethod() {
+        ejbClientPropertiesFile = Utils.setSystemProperty("jboss.ejb.client.properties.file.path", "/home/fjuma/Documents/wildfly-security-incubator/newwildfly/wildfly/testsuite/integration/clustering/src/test/resources/" + PROPERTIES_FILE);
         start(CONTAINERS);
         deploy(DEPLOYMENT_HELPERS);
         deploy(DEPLOYMENTS);
@@ -77,6 +81,7 @@ public abstract class RemoteEJBClientStatefulFailoverTestBase extends ClusterAbs
     @Override
     public void afterTestMethod() {
         super.afterTestMethod();
+        Utils.setSystemProperty("jboss.ejb.client.properties.file.path", ejbClientPropertiesFile);
         undeploy(DEPLOYMENT_HELPERS);
     }
 
