@@ -57,6 +57,7 @@ import org.jboss.as.test.clustering.ejb.EJBDirectory;
 import org.jboss.as.test.clustering.ejb.RemoteEJBDirectory;
 import org.jboss.as.test.shared.TimeoutUtil;
 import org.jboss.as.test.shared.util.DisableInvocationTestUtil;
+import org.jboss.ejb.client.legacy.ElytronLegacyConfiguration;
 import org.jboss.ejb.client.legacy.JBossEJBProperties;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -126,78 +127,85 @@ public class RemoteFailoverTestCase extends ClusterAbstractTestCase {
     private void testStatelessFailover(String properties, Class<? extends Incrementor> beanClass) throws Exception {
         JBossEJBProperties ejbProperties = JBossEJBProperties.fromClassPath(RemoteFailoverTestCase.class.getClassLoader(), properties);
         ejbProperties.runCallable(() -> {
-            try (EJBDirectory context = new RemoteEJBDirectory(MODULE_NAME)) {
-                Incrementor bean = context.lookupStateless(beanClass, Incrementor.class);
+            // TODO Elytron: When running this test, the wildfly-config.xml from wildfly-protocol.jar will be found,
+            // preventing LegacyConfiguration from being read (since LegacyConfiguration is only processed if no
+            // Elytron client configuration is found). Working around this by manually setting the authentication
+            // context for now to make sure the test specific jboss-ejb-client.properties file will get used.
+            new ElytronLegacyConfiguration().getConfiguredAuthenticationContext().runCallable(() -> {
+                try (EJBDirectory context = new RemoteEJBDirectory(MODULE_NAME)) {
+                    Incrementor bean = context.lookupStateless(beanClass, Incrementor.class);
 
-                // Allow sufficient time for client to receive full topology
-                Thread.sleep(CLIENT_TOPOLOGY_UPDATE_WAIT);
+                    // Allow sufficient time for client to receive full topology
+                    Thread.sleep(CLIENT_TOPOLOGY_UPDATE_WAIT);
 
-                List<String> results = new ArrayList<>(COUNT);
-                for (int i = 0; i < COUNT; ++i) {
-                    Result<Integer> result = bean.increment();
-                    results.add(result.getNode());
-                    Thread.sleep(INVOCATION_WAIT);
+                    List<String> results = new ArrayList<>(COUNT);
+                    for (int i = 0; i < COUNT; ++i) {
+                        Result<Integer> result = bean.increment();
+                        results.add(result.getNode());
+                        Thread.sleep(INVOCATION_WAIT);
+                    }
+
+                    for (String node : NODES) {
+                        int frequency = Collections.frequency(results, node);
+                        assertTrue(String.valueOf(frequency) + " invocations were routed to " + node, frequency > 0);
+                    }
+
+                    undeploy(DEPLOYMENT_1);
+
+                    for (int i = 0; i < COUNT; ++i) {
+                        Result<Integer> result = bean.increment();
+                        results.set(i, result.getNode());
+                        Thread.sleep(INVOCATION_WAIT);
+                    }
+
+                    Assert.assertEquals(0, Collections.frequency(results, NODE_1));
+                    Assert.assertEquals(COUNT, Collections.frequency(results, NODE_2));
+
+                    deploy(DEPLOYMENT_1);
+
+                    // Allow sufficient time for client to receive new topology
+                    Thread.sleep(CLIENT_TOPOLOGY_UPDATE_WAIT);
+
+                    for (int i = 0; i < COUNT; ++i) {
+                        Result<Integer> result = bean.increment();
+                        results.set(i, result.getNode());
+                        Thread.sleep(INVOCATION_WAIT);
+                    }
+
+                    for (String node : NODES) {
+                        int frequency = Collections.frequency(results, node);
+                        assertTrue(String.valueOf(frequency) + " invocations were routed to " + node, frequency > 0);
+                    }
+
+                    stop(CONTAINER_2);
+
+                    for (int i = 0; i < COUNT; ++i) {
+                        Result<Integer> result = bean.increment();
+                        results.set(i, result.getNode());
+                        Thread.sleep(INVOCATION_WAIT);
+                    }
+
+                    Assert.assertEquals(COUNT, Collections.frequency(results, NODE_1));
+                    Assert.assertEquals(0, Collections.frequency(results, NODE_2));
+
+                    start(CONTAINER_2);
+
+                    // Allow sufficient time for client to receive new topology
+                    Thread.sleep(CLIENT_TOPOLOGY_UPDATE_WAIT);
+
+                    for (int i = 0; i < COUNT; ++i) {
+                        Result<Integer> result = bean.increment();
+                        results.set(i, result.getNode());
+                        Thread.sleep(INVOCATION_WAIT);
+                    }
+
+                    for (String node : NODES) {
+                        int frequency = Collections.frequency(results, node);
+                        assertTrue(String.valueOf(frequency) + " invocations were routed to " + node, frequency > 0);
+                    }
                 }
-
-                for (String node : NODES) {
-                    int frequency = Collections.frequency(results, node);
-                    assertTrue(String.valueOf(frequency) + " invocations were routed to " + node, frequency > 0);
-                }
-
-                undeploy(DEPLOYMENT_1);
-
-                for (int i = 0; i < COUNT; ++i) {
-                    Result<Integer> result = bean.increment();
-                    results.set(i, result.getNode());
-                    Thread.sleep(INVOCATION_WAIT);
-                }
-
-                Assert.assertEquals(0, Collections.frequency(results, NODE_1));
-                Assert.assertEquals(COUNT, Collections.frequency(results, NODE_2));
-
-                deploy(DEPLOYMENT_1);
-
-                // Allow sufficient time for client to receive new topology
-                Thread.sleep(CLIENT_TOPOLOGY_UPDATE_WAIT);
-
-                for (int i = 0; i < COUNT; ++i) {
-                    Result<Integer> result = bean.increment();
-                    results.set(i, result.getNode());
-                    Thread.sleep(INVOCATION_WAIT);
-                }
-
-                for (String node : NODES) {
-                    int frequency = Collections.frequency(results, node);
-                    assertTrue(String.valueOf(frequency) + " invocations were routed to " + node, frequency > 0);
-                }
-
-                stop(CONTAINER_2);
-
-                for (int i = 0; i < COUNT; ++i) {
-                    Result<Integer> result = bean.increment();
-                    results.set(i, result.getNode());
-                    Thread.sleep(INVOCATION_WAIT);
-                }
-
-                Assert.assertEquals(COUNT, Collections.frequency(results, NODE_1));
-                Assert.assertEquals(0, Collections.frequency(results, NODE_2));
-
-                start(CONTAINER_2);
-
-                // Allow sufficient time for client to receive new topology
-                Thread.sleep(CLIENT_TOPOLOGY_UPDATE_WAIT);
-
-                for (int i = 0; i < COUNT; ++i) {
-                    Result<Integer> result = bean.increment();
-                    results.set(i, result.getNode());
-                    Thread.sleep(INVOCATION_WAIT);
-                }
-
-                for (String node : NODES) {
-                    int frequency = Collections.frequency(results, node);
-                    assertTrue(String.valueOf(frequency) + " invocations were routed to " + node, frequency > 0);
-                }
-            }
+                return null;
+            });
             return null;
         });
     }
