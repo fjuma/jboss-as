@@ -21,14 +21,29 @@
  */
 package org.jboss.as.test.integration.ejb.remote.security;
 
+//import org.jboss.as.test.shared.integration.ejb.security.Util;
+//import java.util.concurrent.Callable;
+
+
+import java.util.concurrent.Callable;
+
 import org.jboss.as.test.shared.integration.ejb.security.Util;
+//import org.wildfly.security.auth.server.SecurityDomain;
+//import org.wildfly.security.auth.server.SecurityIdentity;
+//import org.wildfly.security.evidence.PasswordGuessEvidence;
+//import org.wildfly.security.auth.client.AuthenticationConfiguration;
+//import org.wildfly.security.auth.client.AuthenticationContext;
+//import org.wildfly.security.auth.client.MatchRule;
+
 import javax.annotation.Resource;
 import javax.ejb.EJB;
 import javax.ejb.EJBContext;
 import javax.ejb.Remote;
 import javax.ejb.Stateless;
-import javax.security.auth.login.LoginContext;
-import javax.security.auth.login.LoginException;
+//import javax.security.auth.login.LoginContext;
+//import javax.security.auth.login.LoginException;
+//import javax.security.auth.login.LoginContext;
+//import javax.security.auth.login.LoginException;
 
 /**
  * An unsecured EJB used to test switching the identity before calling a secured EJB.
@@ -52,7 +67,7 @@ public class EntryBean implements IntermediateAccess {
 
     @Override
     public String getPrincipalName(String username, String password) {
-        try {
+        /*try {
             LoginContext lc = null;
             try {
                 if (username != null && password != null) {
@@ -66,6 +81,52 @@ public class EntryBean implements IntermediateAccess {
                 }
             }
         } catch (LoginException e) {
+            throw new RuntimeException(e);
+        }*/
+        /*final AuthenticationConfiguration authenticationConfiguration = AuthenticationConfiguration.EMPTY
+                .useName(username)
+                .usePassword(password)
+                .useProvidersFromClassLoader(EntryBean.class.getClassLoader());
+        final AuthenticationContext authenticationContext = AuthenticationContext.empty().with(MatchRule.ALL, authenticationConfiguration);
+        try {
+            return authenticationContext.runCallable(() -> ejb.getPrincipalName());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }*/
+        /*if (SecurityDomain.getCurrent() != null) {
+            // Elytron is enabled, use SecurityDomain.authenticate() to obtain the SecurityIdentity you want to switch to
+            try {
+                if (username != null && password != null) {
+                    final SecurityIdentity securityIdentity = SecurityDomain.getCurrent().authenticate(username, new PasswordGuessEvidence(password.toCharArray()));
+                    return securityIdentity.runAs((Callable<String>) () -> ejb.getPrincipalName());
+                }
+                return ejb.getPrincipalName();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            // Legacy security is enabled, use the old ClientLoginModule approach
+            try {
+                LoginContext lc = null;
+                try {
+                    if (username != null && password != null) {
+                        lc = Util.getCLMLoginContext(username, password);
+                        lc.login();
+                    }
+                    return ejb.getPrincipalName();
+                } finally {
+                    if (lc != null) {
+                        lc.logout();
+                    }
+                }
+            } catch (LoginException e) {
+                throw new RuntimeException(e);
+            }
+        }*/
+        try {
+            final Callable<String> callable = () -> ejb.getPrincipalName();
+            return Util.switchIdentity(username, password, callable);
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
