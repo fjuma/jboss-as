@@ -55,6 +55,9 @@ import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.as.arquillian.api.ServerSetup;
 import org.jboss.as.test.categories.CommonCriteria;
 import org.junit.Ignore;
+import org.wildfly.security.auth.server.SecurityDomain;
+import org.wildfly.security.auth.server.SecurityIdentity;
+import org.wildfly.security.evidence.PasswordGuessEvidence;
 import org.wildfly.test.integration.elytron.ejb.authentication.EntryBean;
 import org.wildfly.test.integration.elytron.ejb.base.WhoAmIBean;
 import org.jboss.as.test.integration.security.common.AbstractSecurityDomainSetup;
@@ -144,16 +147,20 @@ public class AuthenticationTestCase {
     private Entry entryBean;
 
     @Test
-    @Ignore("[WFLY-7778] EJB identity propagation does not work with Elytron")
+    //@Ignore("[WFLY-7778] EJB identity propagation does not work with Elytron")
     public void testAuthentication() throws Exception {
-        LoginContext lc = Util.getCLMLoginContext("user1", "password1");
-        lc.login();
-        try {
-            String response = entryBean.whoAmI();
-            assertEquals("user1", response);
-        } finally {
-            lc.logout();
-        }
+        //LoginContext lc = Util.getCLMLoginContext("user1", "password1");
+        //lc.login();
+        //try {
+            final SecurityIdentity securityIdentity = SecurityDomain.getCurrent().authenticate("user1", new PasswordGuessEvidence("password1".toCharArray()));
+            securityIdentity.runAs((Callable<String>) () -> {
+                String response = entryBean.whoAmI();
+                assertEquals("user1", response);
+                return null;
+            });
+        //} finally {
+            //lc.logout();
+        //}
     }
 
     @Test
