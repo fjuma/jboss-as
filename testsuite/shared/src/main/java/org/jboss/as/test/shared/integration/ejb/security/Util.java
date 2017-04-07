@@ -38,8 +38,12 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.Callable;
 
 import org.jboss.security.ClientLoginModule;
+import org.wildfly.security.auth.server.SecurityDomain;
+import org.wildfly.security.auth.server.SecurityIdentity;
+import org.wildfly.security.evidence.PasswordGuessEvidence;
 
 /**
  * Holder for couple of utility methods used while testing EJB3 security.
@@ -129,6 +133,26 @@ public class Util {
 
         return new InitialContext(jndiProps);
 
+    }
+
+    public static <T> T switchIdentity(final String username, final String password, final Callable<T> callable) throws Exception {
+        if (username != null && password != null) {
+            if (SecurityDomain.getCurrent() != null) {
+                // elytron is enabled, use the new way to switch the identity
+                final SecurityIdentity securityIdentity = SecurityDomain.getCurrent().authenticate(username, new PasswordGuessEvidence(password.toCharArray()));
+                return securityIdentity.runAs(callable);
+            } else {
+                // legacy security is enabled, use the ClientLoginModule to switch the identity
+                LoginContext lc = getCLMLoginContext(username, password);
+                lc.login();
+                try {
+                    return callable.call();
+                } finally {
+                    lc.logout();
+                }
+            }
+        }
+        return callable.call();
     }
 
 }
