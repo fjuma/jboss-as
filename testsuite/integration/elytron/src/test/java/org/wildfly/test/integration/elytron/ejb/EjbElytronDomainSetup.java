@@ -143,8 +143,8 @@ public class EjbElytronDomainSetup extends AbstractSecurityDomainSetup {
         // /subsystem=elytron/properties-realm=UsersRoles:add(users-properties={path=users.properties},groups-properties={path=roles.properties})
         ModelNode addRealm = Util.createAddOperation(realmAddress);
         addRealm.get("users-properties").get("path").set(getUsersFile());
+        addRealm.get("users-properties").get("plain-text").set(isUsersFilePlain()); // not hashed
         addRealm.get("groups-properties").get("path").set(getGroupsFile());
-        addRealm.get("plain-text").set(isUsersFilePlain()); // not hashed
         steps.add(addRealm);
 
         // /subsystem=elytron/security-domain=EjbDomain:add(default-realm=UsersRoles, realms=[{realm=UsersRoles}])
