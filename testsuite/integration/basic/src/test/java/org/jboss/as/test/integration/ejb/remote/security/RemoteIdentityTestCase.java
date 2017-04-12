@@ -101,4 +101,5 @@ public class RemoteIdentityTestCase {
 
         assertEquals("guest", targetBean.getPrincipalName(null, null));
     }
+
 }
