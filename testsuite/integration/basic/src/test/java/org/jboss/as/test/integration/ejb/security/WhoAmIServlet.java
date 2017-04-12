@@ -21,8 +21,6 @@
  */
 package org.jboss.as.test.integration.ejb.security;
 
-import static org.jboss.as.test.shared.integration.ejb.security.Util.getCLMLoginContext;
-
 import java.io.IOException;
 import java.io.Writer;
 import java.util.concurrent.Callable;
@@ -30,8 +28,6 @@ import java.util.concurrent.Callable;
 import javax.annotation.security.DeclareRoles;
 import javax.ejb.EJB;
 import javax.ejb.EJBAccessException;
-import javax.security.auth.login.LoginContext;
-import javax.security.auth.login.LoginException;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.HttpConstraint;
 import javax.servlet.annotation.ServletSecurity;
@@ -88,21 +84,14 @@ public class WhoAmIServlet extends HttpServlet {
             }
             writer.write(response[0] + "," + response[1]);
         } else if ("doIHaveRole".equals(method)) {
-            LoginContext lc = null;
             try {
-                if (username != null && password != null) {
-                    lc = getCLMLoginContext(username, password);
-                    lc.login();
-                }
-                try {
+                Callable<Void> callable = () -> {
                     writer.write(String.valueOf(bean.doIHaveRole(role)));
-                } finally {
-                    if (lc != null) {
-                        lc.logout();
-                    }
-                }
-            } catch (LoginException le) {
-                throw new IOException("Unexpected failure", le);
+                    return null;
+                };
+                Util.switchIdentity(username, password, callable);
+            } catch (Exception e) {
+                throw new IOException("Unexpected failure", e);
             }
         } else if ("doubleDoIHaveRole".equals(method)) {
             try {
