@@ -60,6 +60,14 @@ public class EjbSecurityDomainSetup extends AbstractSecurityDomainSetup {
         return DEFAULT_SECURITY_DOMAIN_NAME;
     }
 
+    protected String getUsersFile() {
+        return new File(EjbSecurityDomainSetup.class.getResource("users.properties").getFile()).getAbsolutePath();
+    }
+
+    protected String getGroupsFile() {
+        return new File(EjbSecurityDomainSetup.class.getResource("roles.properties").getFile()).getAbsolutePath();
+    }
+
     public boolean isUsersRolesRequired() {
         return true;
     }
@@ -101,9 +109,8 @@ public class EjbSecurityDomainSetup extends AbstractSecurityDomainSetup {
             applyUpdates(managementClient.getControllerClient(), Arrays.asList(compositeOp));
         } else {
             // Elytron profile is enabled, use Elytron setup
-            final String usersFile = new File(EjbSecurityDomainSetup.class.getResource("users.properties").getFile()).getAbsolutePath();
-            final String groupsFile = new File(EjbSecurityDomainSetup.class.getResource("roles.properties").getFile()).getAbsolutePath();
-            EjbElytronDomainSetup ejbElytronDomainSetup = new EjbElytronDomainSetup(usersFile, groupsFile);
+            System.out.println("***** USERS FILE " + getUsersFile());
+            EjbElytronDomainSetup ejbElytronDomainSetup = new EjbElytronDomainSetup(getUsersFile(), getGroupsFile(), getSecurityDomainName());
             ejbElytronDomainSetup.setup(managementClient, containerId);
         }
     }
