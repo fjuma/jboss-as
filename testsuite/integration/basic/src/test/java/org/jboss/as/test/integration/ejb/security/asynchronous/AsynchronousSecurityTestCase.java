@@ -23,6 +23,8 @@
 package org.jboss.as.test.integration.ejb.security.asynchronous;
 
 //import java.util.concurrent.Callable;
+import java.io.File;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -68,6 +70,16 @@ public class AsynchronousSecurityTestCase {
         protected String getSecurityDomainName() {
             return "async-security-test";
         }
+
+        @Override
+        protected String getUsersFile() {
+            return new File(AsynchronousSecurityTestCase.class.getResource("users.properties").getFile()).getAbsolutePath();
+        }
+
+        @Override
+        protected String getGroupsFile() {
+            return new File(AsynchronousSecurityTestCase.class.getResource("roles.properties").getFile()).getAbsolutePath();
+        }
     }
 
     @ArquillianResource
@@ -99,64 +111,53 @@ public class AsynchronousSecurityTestCase {
         SecuredStatelessRemote securedBean = lookupInterface(SecuredStatelessBean.class, SecuredStatelessRemote.class);
 
         boolean result = false;
-        Future<Boolean> future;
 
         // Test 1
         SecuredStatelessBean.reset();
 
-        LoginContext lc = Util.getCLMLoginContext("somebody", "password");
-        lc.login();
-
-        try {
-            future = securedBean.method();
+        Callable<Boolean> callable = () -> {
+            Future<Boolean> future = securedBean.method();
             SecuredStatelessBean.startLatch.countDown();
-            result = future.get();
-        } finally {
-            lc.logout();
-        }
+            return future.get();
+        };
+        result = Util.switchIdentity("somebody", "password", callable);
         Assert.assertTrue(result);
 
         // Test 2
         SecuredStatelessBean.reset();
-        future = null;
         result = false;
-        lc = Util.getCLMLoginContext("rolefail", "password");
-        lc.login();
-
-        try {
-            future = securedBean.method();
+        callable = () -> {
+            Future<Boolean> future = securedBean.method();
             SecuredStatelessBean.startLatch.countDown();
-            result = future.get();
+            return future.get();
+        };
+        try {
+            result = Util.switchIdentity("rolefail", "password", callable);
         } catch (ExecutionException ee) {
             if(!(ee.getCause() instanceof EJBAccessException)) {
                 Assert.fail("Exception cause was not EJBAccessException and was " + ee);
             }
         } catch (EJBAccessException ejbe) {
             // it's ok too
-        } finally {
-            lc.logout();
         }
         Assert.assertFalse(result);
 
         // Test 3
         SecuredStatelessBean.reset();
-        future = null;
         result = false;
-        lc = Util.getCLMLoginContext("nosuchuser", "password");
-        lc.login();
-
-        try {
-            future = securedBean.method();
+        callable = () -> {
+            Future<Boolean> future = securedBean.method();
             SecuredStatelessBean.startLatch.countDown();
-            result = future.get();
+            return future.get();
+        };
+        try {
+            result = Util.switchIdentity("nosuchuser", "password", callable);
         } catch (ExecutionException ee) {
-            if(!(ee.getCause() instanceof EJBAccessException)) {
-                Assert.fail("Exception cause was not EJBAccessException and was " + ee);
+            if(!(ee.getCause() instanceof EJBAccessException) && ! (ee.getCause() instanceof SecurityException)) {
+                Assert.fail("Exception cause was not EJBAccessException or SecurityException and was " + ee);
             }
         } catch (EJBAccessException ejbe) {
             // it's ok too
-        } finally {
-            lc.logout();
         }
         Assert.assertFalse(result);
     }
