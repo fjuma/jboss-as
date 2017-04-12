@@ -22,6 +22,8 @@
 
 package org.jboss.as.test.integration.ejb.security.missingmethodpermission;
 
+import java.util.concurrent.Callable;
+
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.as.test.shared.integration.ejb.security.Util;
@@ -118,15 +120,19 @@ public class MissingMethodPermissionsTestCase {
      */
     @Test
     public void testAllowAccessForMethodsMissingPermissions() throws Exception {
-        final SecurityTestRemoteView allowAccessBean = InitialContext.doLookup("java:global/" + APP_NAME + "/" + MODULE_ONE_NAME + "/" + SecuredBeanOne.class.getSimpleName() + "!" + SecurityTestRemoteView.class.getName());
-        // first invoke on a method which has a specific role and that invocation should pass
-        final String callerPrincipalName = allowAccessBean.methodWithSpecificRole();
-        Assert.assertEquals("Unexpected caller prinicpal", "user1", callerPrincipalName);
-        // now invoke on a method which doesn't have an explicit security configuration. The SecuredBeanOne (deployment) is configured for
-        // <missing-method-permissions-deny-access>false</missing-method-permissions-deny-access>
-        // so the invocation on such a method is expected to fail
-        final String callerPrincipalForMethodWithNoRole = allowAccessBean.methodWithNoRole();
-        Assert.assertEquals("Unexpected caller prinicpal when invoking method with no role", "user1", callerPrincipalForMethodWithNoRole);
+        Callable<Void> callable = () -> {
+            final SecurityTestRemoteView allowAccessBean = InitialContext.doLookup("java:global/" + APP_NAME + "/" + MODULE_ONE_NAME + "/" + SecuredBeanOne.class.getSimpleName() + "!" + SecurityTestRemoteView.class.getName());
+            // first invoke on a method which has a specific role and that invocation should pass
+            final String callerPrincipalName = allowAccessBean.methodWithSpecificRole();
+            Assert.assertEquals("Unexpected caller prinicpal", "user1", callerPrincipalName);
+            // now invoke on a method which doesn't have an explicit security configuration. The SecuredBeanOne (deployment) is configured for
+            // <missing-method-permissions-deny-access>false</missing-method-permissions-deny-access>
+            // so the invocation on such a method is expected to fail
+            final String callerPrincipalForMethodWithNoRole = allowAccessBean.methodWithNoRole();
+            Assert.assertEquals("Unexpected caller prinicpal when invoking method with no role", "user1", callerPrincipalForMethodWithNoRole);
+            return null;
+        };
+        Util.switchIdentity("user1", "password1", callable);
     }
 
     /**
