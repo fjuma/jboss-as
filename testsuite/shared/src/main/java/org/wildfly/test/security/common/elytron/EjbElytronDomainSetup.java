@@ -20,11 +20,10 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.wildfly.test.integration.elytron.ejb;
+package org.wildfly.test.security.common.elytron;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.*;
 
-import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -62,6 +61,14 @@ public class EjbElytronDomainSetup extends AbstractSecurityDomainSetup {
 
     private PathAddress undertowDomainAddress;
 
+    private String usersFile;
+    private String groupsFile;
+
+    public EjbElytronDomainSetup(String usersFile, String groupsFile) {
+        this.usersFile = usersFile;
+        this.groupsFile = groupsFile;
+    }
+
     protected String getSecurityDomainName() {
         return "ejb3-tests";
     }
@@ -91,11 +98,11 @@ public class EjbElytronDomainSetup extends AbstractSecurityDomainSetup {
     }
 
     protected String getUsersFile() {
-        return new File(EjbElytronDomainSetup.class.getResource("users.properties").getFile()).getAbsolutePath();
+        return usersFile;
     }
 
     protected String getGroupsFile() {
-        return new File(EjbElytronDomainSetup.class.getResource("roles.properties").getFile()).getAbsolutePath();
+        return groupsFile;
     }
 
     protected boolean isUsersFilePlain() {
