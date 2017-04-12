@@ -43,6 +43,8 @@ import org.wildfly.extension.elytron.ElytronExtension;
  */
 public class EjbElytronDomainSetup extends AbstractSecurityDomainSetup {
 
+    private static final String DEFAULT_SECURITY_DOMAIN_NAME = "ejb3-tests";
+
     private PathAddress realmAddress;
 
     private PathAddress domainAddress;
@@ -61,16 +63,22 @@ public class EjbElytronDomainSetup extends AbstractSecurityDomainSetup {
 
     private PathAddress undertowDomainAddress;
 
-    private String usersFile;
-    private String groupsFile;
+    private final String usersFile;
+    private final String groupsFile;
+    private final String securityDomainName;
 
-    public EjbElytronDomainSetup(String usersFile, String groupsFile) {
+    public EjbElytronDomainSetup(final String usersFile, final String groupsFile) {
+        this(usersFile, groupsFile, DEFAULT_SECURITY_DOMAIN_NAME);
+    }
+
+    public EjbElytronDomainSetup(final String usersFile, final String groupsFile, final String securityDomainName) {
         this.usersFile = usersFile;
         this.groupsFile = groupsFile;
+        this.securityDomainName = securityDomainName;
     }
 
     protected String getSecurityDomainName() {
-        return "ejb3-tests";
+        return securityDomainName;
     }
 
     protected String getSecurityRealmName() {
@@ -78,23 +86,23 @@ public class EjbElytronDomainSetup extends AbstractSecurityDomainSetup {
     }
 
     protected String getUndertowDomainName() {
-        return "ejb3-tests";
+        return getSecurityDomainName();
     }
 
     protected String getEjbDomainName() {
-        return "ejb3-tests";
+        return getSecurityDomainName();
     }
 
     protected String getSaslAuthenticationName() {
-        return "ejb3-tests";
+        return getSecurityDomainName();
     }
 
     protected String getRemotingConnectorName() {
-        return "ejb3-tests";
+        return getSecurityDomainName();
     }
 
     protected String getHttpAuthenticationName() {
-        return "ejb3-tests";
+        return getSecurityDomainName();
     }
 
     protected String getUsersFile() {
@@ -181,7 +189,7 @@ public class EjbElytronDomainSetup extends AbstractSecurityDomainSetup {
         addEjbDomain.get("security-domain").set(getSecurityDomainName());
         steps.add(addEjbDomain);
 
-        steps.add(Util.getWriteAttributeOperation(ejbRemoteAddress, "connector-ref", "ejb3-tests-connector"));
+        steps.add(Util.getWriteAttributeOperation(ejbRemoteAddress, "connector-ref", getSecurityDomainName() + "-connector"));
 
         ModelNode addHttpAuthentication = Util.createAddOperation(httpAuthenticationAddress);
         addHttpAuthentication.get("security-domain").set(getSecurityDomainName());
