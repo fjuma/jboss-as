@@ -54,7 +54,7 @@ public interface Entry {
      * @return An array containing the name from the local call first followed by the name from
      * the second call.
      * @throws Exception - If there is an unexpected failure establishing the security context for
-     * the second call or if an exception occurs while executing the second call.
+     * the second call.
      */
     String[] doubleWhoAmI(String username, String password) throws Exception;
 
