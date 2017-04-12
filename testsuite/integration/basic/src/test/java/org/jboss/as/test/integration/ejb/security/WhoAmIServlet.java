@@ -25,6 +25,8 @@ import static org.jboss.as.test.shared.integration.ejb.security.Util.getCLMLogin
 
 import java.io.IOException;
 import java.io.Writer;
+import java.util.concurrent.Callable;
+
 import javax.annotation.security.DeclareRoles;
 import javax.ejb.EJB;
 import javax.ejb.EJBAccessException;
@@ -37,6 +39,8 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import org.jboss.as.test.shared.integration.ejb.security.Util;
 
 /**
  * @author <a href="mailto:cdewolf@redhat.com">Carlo de Wolf</a>
@@ -58,21 +62,14 @@ public class WhoAmIServlet extends HttpServlet {
         String role = req.getParameter("role");
 
         if ("whoAmI".equals(method)) {
-            LoginContext lc = null;
             try {
-                if (username != null && password != null) {
-                    lc = getCLMLoginContext(username, password);
-                    lc.login();
-                }
-                try {
+                Callable<Void> callable = () -> {
                     writer.write(bean.whoAmI());
-                } finally {
-                    if (lc != null) {
-                        lc.logout();
-                    }
-                }
-            } catch (LoginException le) {
-                throw new IOException("Unexpected failure", le);
+                    return null;
+                };
+                Util.switchIdentity(username, password, callable);
+            } catch (Exception e) {
+                throw new IOException("Unexpected failure", e);
             }
 
         } else if ("doubleWhoAmI".equals(method)) {
@@ -86,7 +83,7 @@ public class WhoAmIServlet extends HttpServlet {
             } catch (EJBAccessException e) {
                 resp.sendError(HttpServletResponse.SC_FORBIDDEN, e.toString());
                 return;
-            } catch (LoginException e) {
+            } catch (Exception e) {
                 throw new ServletException("Unexpected failure", e);
             }
             writer.write(response[0] + "," + response[1]);
