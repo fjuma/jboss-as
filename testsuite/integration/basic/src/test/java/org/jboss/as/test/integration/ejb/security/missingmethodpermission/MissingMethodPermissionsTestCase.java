@@ -26,6 +26,9 @@ import java.util.concurrent.Callable;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.as.arquillian.api.ServerSetup;
+import org.jboss.as.test.integration.ejb.security.EjbSecurityDomainSetup;
+import org.jboss.as.test.integration.security.common.AbstractSecurityDomainSetup;
 import org.jboss.as.test.shared.integration.ejb.security.Util;
 import org.jboss.as.test.shared.util.AssumeTestGroupUtil;
 import org.jboss.logging.Logger;
@@ -33,16 +36,13 @@ import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import javax.ejb.EJBAccessException;
 import javax.naming.InitialContext;
-import javax.security.auth.login.LoginContext;
 
 /**
  * Tests the <code>missing-method-permissions-deny-access</code> configuration which lets users decide whether secured beans whose
@@ -51,6 +51,7 @@ import javax.security.auth.login.LoginContext;
  * @author Jaikiran Pai
  */
 @RunWith(Arquillian.class)
+@ServerSetup(MissingMethodPermissionsTestCase.DefaultEjbSecurityDomainSetup.class)
 public class MissingMethodPermissionsTestCase {
 
     private static final Logger logger = Logger.getLogger(MissingMethodPermissionsTestCase.class);
@@ -62,8 +63,6 @@ public class MissingMethodPermissionsTestCase {
     private static final String MODULE_TWO_NAME = "missing-method-permissions-test-ejb-jar-two";
 
     private static final String MODULE_THREE_NAME = "missing-method-permissions-test-ejb-jar-three";
-
-    private LoginContext loginContext;
 
     @BeforeClass
     public static void beforeClass() {
@@ -86,6 +85,7 @@ public class MissingMethodPermissionsTestCase {
                 .addClass(SecuredBeanThree.class);
 
         final JavaArchive libJar = ShrinkWrap.create(JavaArchive.class, "bean-interfaces.jar")
+                .addClasses(AbstractSecurityDomainSetup.class, EjbSecurityDomainSetup.class)
                 .addClasses(SecurityTestRemoteView.class, Util.class, MissingMethodPermissionsTestCase.class);
 
         final EnterpriseArchive ear = ShrinkWrap.create(EnterpriseArchive.class, APP_NAME + ".ear")
@@ -94,22 +94,6 @@ public class MissingMethodPermissionsTestCase {
                 .addAsManifestResource(currentPackage, "permissions.xml", "permissions.xml");
 
         return ear;
-    }
-
-    @Before
-    public void login() throws Exception {
-        final LoginContext lc = Util.getCLMLoginContext("user1", "password1");
-        lc.login();
-
-        this.loginContext = lc;
-    }
-
-    @After
-    public void logout() throws Exception {
-        if (this.loginContext != null) {
-            this.loginContext.logout();
-        }
-        this.loginContext = null;
     }
 
     /**
@@ -143,19 +127,23 @@ public class MissingMethodPermissionsTestCase {
      */
     @Test
     public void testDenyAccessForMethodsMissingPermissions() throws Exception {
-        final SecurityTestRemoteView denyAccessBean = InitialContext.doLookup("java:global/" + APP_NAME + "/" + MODULE_TWO_NAME + "/" + SecuredBeanTwo.class.getSimpleName() + "!" + SecurityTestRemoteView.class.getName());
-        // first invoke on a method which has a specific role and that invocation should pass
-        final String callerPrincipalName = denyAccessBean.methodWithSpecificRole();
-        Assert.assertEquals("Unexpected caller prinicpal", "user1", callerPrincipalName);
-        // now invoke on a method which doesn't have an explicit security configuration. The SecuredBeanTwo (deployment) is configured for
-        // <missing-method-permissions-deny-access>true</missing-method-permissions-deny-access>
-        // so the invocation on such a method is expected to fail
-        try {
-            denyAccessBean.methodWithNoRole();
-            Assert.fail("Invocation on a method with no specific security configurations was expected to fail due to <missing-method-permissions-deny-access>true</missing-method-permissions-deny-access> configuration, but it didn't");
-        } catch (EJBAccessException eae) {
-            logger.trace("Got the expected exception", eae);
-        }
+        Callable<Void> callable = () -> {
+            final SecurityTestRemoteView denyAccessBean = InitialContext.doLookup("java:global/" + APP_NAME + "/" + MODULE_TWO_NAME + "/" + SecuredBeanTwo.class.getSimpleName() + "!" + SecurityTestRemoteView.class.getName());
+            // first invoke on a method which has a specific role and that invocation should pass
+            final String callerPrincipalName = denyAccessBean.methodWithSpecificRole();
+            Assert.assertEquals("Unexpected caller prinicpal", "user1", callerPrincipalName);
+            // now invoke on a method which doesn't have an explicit security configuration. The SecuredBeanTwo (deployment) is configured for
+            // <missing-method-permissions-deny-access>true</missing-method-permissions-deny-access>
+            // so the invocation on such a method is expected to fail
+            try {
+                denyAccessBean.methodWithNoRole();
+                Assert.fail("Invocation on a method with no specific security configurations was expected to fail due to <missing-method-permissions-deny-access>true</missing-method-permissions-deny-access> configuration, but it didn't");
+            } catch (EJBAccessException eae) {
+                logger.trace("Got the expected exception", eae);
+            }
+            return null;
+        };
+        Util.switchIdentity("user1", "password1", callable);
     }
 
     /**
@@ -165,18 +153,33 @@ public class MissingMethodPermissionsTestCase {
      */
     @Test
     public void testDenyAccessByDefaultForMethodsMissingPermissions() throws Exception {
-        final SecurityTestRemoteView denyAccessBean = InitialContext.doLookup("java:global/" + APP_NAME + "/" + MODULE_THREE_NAME + "/" + SecuredBeanThree.class.getSimpleName() + "!" + SecurityTestRemoteView.class.getName());
-        // first invoke on a method which has a specific role and that invocation should pass
-        final String callerPrincipalName = denyAccessBean.methodWithSpecificRole();
-        Assert.assertEquals("Unexpected caller prinicpal", "user1", callerPrincipalName);
-        // now invoke on a method which doesn't have an explicit security configuration. The SecuredBeanTwo (deployment) is configured for
-        // <missing-method-permissions-deny-access>true</missing-method-permissions-deny-access>
-        // so the invocation on such a method is expected to fail
-        try {
-            denyAccessBean.methodWithNoRole();
-            Assert.fail("Invocation on a method with no specific security configurations was expected to fail due to <missing-method-permissions-deny-access>true</missing-method-permissions-deny-access> configuration, but it didn't");
-        } catch (EJBAccessException eae) {
-            logger.trace("Got the expected exception", eae);
+        Callable<Void> callable = () -> {
+            final SecurityTestRemoteView denyAccessBean = InitialContext.doLookup("java:global/" + APP_NAME + "/" + MODULE_THREE_NAME + "/" + SecuredBeanThree.class.getSimpleName() + "!" + SecurityTestRemoteView.class.getName());
+            // first invoke on a method which has a specific role and that invocation should pass
+            final String callerPrincipalName = denyAccessBean.methodWithSpecificRole();
+            Assert.assertEquals("Unexpected caller prinicpal", "user1", callerPrincipalName);
+            // now invoke on a method which doesn't have an explicit security configuration. The SecuredBeanTwo (deployment) is configured for
+            // <missing-method-permissions-deny-access>true</missing-method-permissions-deny-access>
+            // so the invocation on such a method is expected to fail
+            try {
+                denyAccessBean.methodWithNoRole();
+                Assert.fail("Invocation on a method with no specific security configurations was expected to fail due to <missing-method-permissions-deny-access>true</missing-method-permissions-deny-access> configuration, but it didn't");
+            } catch (EJBAccessException eae) {
+                logger.trace("Got the expected exception", eae);
+            }
+            return null;
+        };
+        Util.switchIdentity("user1", "password1", callable);
+    }
+
+    // This class is needed when running with the Elytron profile enabled in order to make sure "other" gets mapped to an
+    // Elytron security domain that has been configured with a security realm that uses appropriate users.properties
+    // and roles.properties files
+    static class DefaultEjbSecurityDomainSetup extends EjbSecurityDomainSetup {
+        @Override
+        protected String getSecurityDomainName() {
+            return "other";
         }
     }
+
 }
