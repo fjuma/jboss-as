@@ -54,6 +54,7 @@ import org.wildfly.test.security.common.elytron.EjbElytronDomainSetup;
 public class EjbSecurityDomainSetup extends AbstractSecurityDomainSetup {
 
     protected static final String DEFAULT_SECURITY_DOMAIN_NAME = "ejb3-tests";
+    private EjbElytronDomainSetup ejbElytronDomainSetup;
 
     @Override
     protected String getSecurityDomainName() {
@@ -108,10 +109,16 @@ public class EjbSecurityDomainSetup extends AbstractSecurityDomainSetup {
 
             applyUpdates(managementClient.getControllerClient(), Arrays.asList(compositeOp));
         } else {
-            // Elytron profile is enabled, use Elytron setup
-            System.out.println("***** USERS FILE " + getUsersFile());
-            EjbElytronDomainSetup ejbElytronDomainSetup = new EjbElytronDomainSetup(getUsersFile(), getGroupsFile(), getSecurityDomainName());
+            ejbElytronDomainSetup = new EjbElytronDomainSetup(getUsersFile(), getGroupsFile(), getSecurityDomainName());
             ejbElytronDomainSetup.setup(managementClient, containerId);
+        }
+    }
+
+    @Override
+    public void tearDown(final ManagementClient managementClient, final String containerId) {
+        super.tearDown(managementClient, containerId);
+        if (ejbElytronDomainSetup != null) {
+            ejbElytronDomainSetup.tearDown(managementClient, containerId);
         }
     }
 }
