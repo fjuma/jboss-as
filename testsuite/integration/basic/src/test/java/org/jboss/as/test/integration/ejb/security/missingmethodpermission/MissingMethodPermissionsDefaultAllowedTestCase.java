@@ -60,7 +60,7 @@ import java.util.concurrent.Callable;
  * @author Jaikiran Pai
  */
 @RunWith(Arquillian.class)
-@ServerSetup({MissingMethodPermissionsDefaultAllowedTestCase.MissingMethodPermissionsDefaultAllowedTestCaseServerSetup.class, MissingMethodPermissionsDefaultAllowedTestCase.DefaultEjbSecurityDomainSetup.class})
+@ServerSetup({MissingMethodPermissionsDefaultAllowedTestCase.DefaultEjbSecurityDomainSetup.class, MissingMethodPermissionsDefaultAllowedTestCase.MissingMethodPermissionsDefaultAllowedTestCaseServerSetup.class})
 public class MissingMethodPermissionsDefaultAllowedTestCase {
 
     private static final Logger logger = Logger.getLogger(MissingMethodPermissionsDefaultAllowedTestCase.class);
@@ -105,21 +105,24 @@ public class MissingMethodPermissionsDefaultAllowedTestCase {
             address.protect();
             return address;
         }
-
     }
 
-    // This class is only needed when running with the Elytron profile enabled in order to make sure "other" gets mapped to an
-    // Elytron security domain that has been configured with a security realm that uses appropriate users.properties and roles.properties files
+    // Ensure the default security domain gets mapped to an appropriately configured Elytron security domain
     static class DefaultEjbSecurityDomainSetup extends EjbSecurityDomainSetup {
-        @Override
-        protected String getSecurityDomainName() {
-            return "other";
-        }
 
         @Override
         public void setup(final ManagementClient managementClient, final String containerId) throws Exception {
             if (System.getProperty("elytron") != null) {
                 super.setup(managementClient, containerId);
+
+                ModelNode address = getAddress();
+                ModelNode operation = new ModelNode();
+                operation.get(OP).set("write-attribute");
+                operation.get(OP_ADDR).set(address);
+                operation.get("name").set("default-security-domain");
+                operation.get("value").set("ejb3-tests");
+                ModelNode result = managementClient.getControllerClient().execute(operation);
+                Assert.assertEquals(SUCCESS, result.get(OUTCOME).asString());
             }
         }
 
@@ -127,7 +130,27 @@ public class MissingMethodPermissionsDefaultAllowedTestCase {
         public void tearDown(final ManagementClient managementClient, final String containerId) {
             if (System.getProperty("elytron") != null) {
                 super.tearDown(managementClient, containerId);
+
+                ModelNode address = getAddress();
+                ModelNode operation = new ModelNode();
+                operation.get(OP).set("write-attribute");
+                operation.get(OP_ADDR).set(address);
+                operation.get("name").set("default-security-domain");
+                operation.get("value").set("other");
+                try {
+                    ModelNode result = managementClient.getControllerClient().execute(operation);
+                    Assert.assertEquals(SUCCESS, result.get(OUTCOME).asString());
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
             }
+        }
+
+        private static ModelNode getAddress() {
+            ModelNode address = new ModelNode();
+            address.add("subsystem", "ejb3");
+            address.protect();
+            return address;
         }
     }
 

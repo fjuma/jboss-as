@@ -1,5 +1,0 @@
-[INFO] Scanning for projects...
-[INFO]                                                                         
-[INFO] ------------------------------------------------------------------------
-[INFO] Building WildFly Test Suite: Integration - Basic 11.0.0.Beta1-SNAPSHOT
-[INFO] ------------------------------------------------------------------------

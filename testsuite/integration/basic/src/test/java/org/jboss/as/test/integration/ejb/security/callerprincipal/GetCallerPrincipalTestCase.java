@@ -37,6 +37,7 @@ import javax.jms.TextMessage;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
+import org.jboss.as.test.shared.util.AssumeTestGroupUtil;
 import org.junit.Assert;
 
 import org.jboss.arquillian.container.test.api.Deployer;
@@ -61,6 +62,7 @@ import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.jboss.staxmapper.XMLElementReader;
 import org.jboss.staxmapper.XMLElementWriter;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -94,6 +96,11 @@ public class GetCallerPrincipalTestCase {
 
     public static final String LOCAL_USER = "$local";
 
+    @BeforeClass
+    public static void beforeClass() {
+        AssumeTestGroupUtil.assumeElytronProfileTestsEnabled();
+    }
+
     @ArquillianResource
     Deployer deployer;
 
@@ -112,7 +119,6 @@ public class GetCallerPrincipalTestCase {
             JMSOperationsProvider.getInstance(managementClient).removeJmsQueue(QUEUE_NAME);
         }
     }
-
 
     @Deployment(managed=true, testable = false, name = "single", order = 0)
     public static Archive<?> deploymentSingleton()  {
