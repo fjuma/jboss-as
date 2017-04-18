@@ -108,13 +108,26 @@ public class MissingMethodPermissionsDefaultAllowedTestCase {
 
     }
 
-    // This class is needed when running with the Elytron profile enabled in order to make sure "other" gets mapped to an
-    // Elytron security domain that has been configured with a security realm that uses appropriate users.properties
-    // and roles.properties files
+    // This class is only needed when running with the Elytron profile enabled in order to make sure "other" gets mapped to an
+    // Elytron security domain that has been configured with a security realm that uses appropriate users.properties and roles.properties files
     static class DefaultEjbSecurityDomainSetup extends EjbSecurityDomainSetup {
         @Override
         protected String getSecurityDomainName() {
             return "other";
+        }
+
+        @Override
+        public void setup(final ManagementClient managementClient, final String containerId) throws Exception {
+            if (System.getProperty("elytron") != null) {
+                super.setup(managementClient, containerId);
+            }
+        }
+
+        @Override
+        public void tearDown(final ManagementClient managementClient, final String containerId) {
+            if (System.getProperty("elytron") != null) {
+                super.tearDown(managementClient, containerId);
+            }
         }
     }
 
