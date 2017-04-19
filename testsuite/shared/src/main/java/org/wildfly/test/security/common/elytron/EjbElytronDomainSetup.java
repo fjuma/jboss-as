@@ -82,7 +82,7 @@ public class EjbElytronDomainSetup extends AbstractSecurityDomainSetup {
     }
 
     protected String getSecurityRealmName() {
-        return "ejb3-UsersRoles";
+        return getSecurityDomainName() + "-ejb3-UsersRoles";
     }
 
     protected String getUndertowDomainName() {
