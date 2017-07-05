@@ -35,17 +35,33 @@ import org.jboss.as.test.shared.integration.ejb.security.PermissionUtils;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
-import org.wildfly.security.auth.client.AuthenticationConfiguration;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.wildfly.security.auth.client.AuthenticationContext;
+import org.wildfly.security.auth.client.AuthenticationConfiguration;
 import org.wildfly.security.auth.client.MatchRule;
 
 /**
  * Validates failover behavior of a remotely accessed secure @Stateless EJB.
  * @author Paul Ferraro
  */
-@org.junit.Ignore("WFLY-9050")
 public class SecureRemoteStatelessEJBFailoverTestCase extends AbstractRemoteStatelessEJBFailoverTestCase {
     private static final String MODULE_NAME = "secure-remote-stateless-ejb-failover-test";
+    private static AuthenticationContext old;
+
+    @BeforeClass
+    public static void setup() {
+        AuthenticationContext context = AuthenticationContext.empty().with(
+                MatchRule.ALL.matchAbstractType("ejb", "jboss"),
+                AuthenticationConfiguration.empty().useName("user1").usePassword("password1"));
+        old = AuthenticationContext.captureCurrent();
+        AuthenticationContext.getContextManager().setGlobalDefault(context);
+    }
+
+    @AfterClass
+    public static void after() {
+        AuthenticationContext.getContextManager().setGlobalDefault(old);
+    }
 
     @Deployment(name = DEPLOYMENT_1, managed = false, testable = false)
     @TargetsContainer(CONTAINER_1)
@@ -68,10 +84,7 @@ public class SecureRemoteStatelessEJBFailoverTestCase extends AbstractRemoteStat
     }
 
     public SecureRemoteStatelessEJBFailoverTestCase() {
-        super(MODULE_NAME, SecureStatelessIncrementorBean.class, task -> () -> AuthenticationContext.captureCurrent().with(
-                MatchRule.ALL.matchAbstractType("ejb", "jboss"),
-                AuthenticationConfiguration.empty().useName("user1").usePassword("password1")
-            ).runCallable(task));
+        super(MODULE_NAME, SecureStatelessIncrementorBean.class);
     }
 }
 

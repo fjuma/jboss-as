@@ -27,8 +27,6 @@ import static org.junit.Assert.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.function.UnaryOperator;
 
 import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
@@ -61,17 +59,15 @@ public abstract class AbstractRemoteStatelessEJBFailoverTestCase extends Cluster
 
     private final String module;
     private final Class<? extends Incrementor> beanClass;
-    private final UnaryOperator<Callable<Void>> configurator;
 
-    AbstractRemoteStatelessEJBFailoverTestCase(String module, Class<? extends Incrementor> beanClass, UnaryOperator<Callable<Void>> configurator) {
+    AbstractRemoteStatelessEJBFailoverTestCase(String module, Class<? extends Incrementor> beanClass) {
         this.module = module;
         this.beanClass = beanClass;
-        this.configurator = configurator;
     }
 
     @Test
     public void test() throws Exception {
-        JBossEJBProperties.fromClassPath(this.getClass().getClassLoader(), CLIENT_PROPERTIES).runCallable(this.configurator.apply(() -> {
+        JBossEJBProperties.fromClassPath(this.getClass().getClassLoader(), CLIENT_PROPERTIES).runCallable(() -> {
             try (EJBDirectory directory = new RemoteEJBDirectory(this.module)) {
                 Incrementor bean = directory.lookupStateless(this.beanClass, Incrementor.class);
                 EJBClient.setStrongAffinity(bean, new ClusterAffinity("ejb"));
@@ -146,6 +142,6 @@ public abstract class AbstractRemoteStatelessEJBFailoverTestCase extends Cluster
                 }
             }
             return null;
-        }));
+        });
     }
 }

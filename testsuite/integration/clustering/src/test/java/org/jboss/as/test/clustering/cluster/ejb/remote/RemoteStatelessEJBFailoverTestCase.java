@@ -23,7 +23,6 @@
 package org.jboss.as.test.clustering.cluster.ejb.remote;
 
 import java.util.PropertyPermission;
-import java.util.function.UnaryOperator;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.TargetsContainer;
@@ -65,6 +64,6 @@ public class RemoteStatelessEJBFailoverTestCase extends AbstractRemoteStatelessE
     }
 
     public RemoteStatelessEJBFailoverTestCase() {
-        super(MODULE_NAME, StatelessIncrementorBean.class, UnaryOperator.identity());
+        super(MODULE_NAME, StatelessIncrementorBean.class);
     }
 }
