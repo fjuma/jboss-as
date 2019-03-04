@@ -31,6 +31,7 @@ import org.wildfly.security.auth.server.SecurityIdentity;
 import org.wildfly.security.manager.WildFlySecurityManager;
 
 import javax.enterprise.concurrent.ManagedThreadFactory;
+import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 
@@ -42,6 +43,7 @@ import java.security.PrivilegedAction;
 public class ElytronManagedThreadFactory extends ManagedThreadFactoryImpl {
 
     private static final ClassLoader CLASSLOADER = ElytronManagedThreadFactory.class.getClassLoader();
+    private AccessControlContext acc;
 
     public ElytronManagedThreadFactory(String name, ContextServiceImpl contextService, int priority) {
         super(name, contextService, priority);
@@ -53,12 +55,16 @@ public class ElytronManagedThreadFactory extends ManagedThreadFactoryImpl {
                 AccessController.doPrivileged((PrivilegedAction<SecurityDomain>) SecurityDomain::getCurrent) :
                 SecurityDomain.getCurrent();
         SecurityIdentity identity = domain == null ? null : domain.getCurrentSecurityIdentity();
+
+        acc = AccessController.getContext();
+
         final ClassLoader tccl = WildFlySecurityManager.getCurrentContextClassLoaderPrivileged();
         try {
             WildFlySecurityManager.setCurrentContextClassLoaderPrivileged(CLASSLOADER);
             if (checking) {
                 return AccessController.doPrivileged((PrivilegedAction<ElytronManagedThread>)
-                        () -> new ElytronManagedThread(r, contextHandleForSetup, identity)
+                        () -> new ElytronManagedThread(r, contextHandleForSetup, identity),
+                       acc
                 );
             } else {
                 return new ElytronManagedThread(r, contextHandleForSetup, identity);
