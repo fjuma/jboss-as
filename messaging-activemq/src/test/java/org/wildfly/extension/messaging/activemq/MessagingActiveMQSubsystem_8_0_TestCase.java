@@ -73,20 +73,20 @@ import org.wildfly.extension.messaging.activemq.jms.ConnectionFactoryAttributes;
 /**
  *  * @author <a href="http://jmesnil.net/">Jeff Mesnil</a> (c) 2012 Red Hat inc
  */
-public class MessagingActiveMQSubsystem_7_0_TestCase extends AbstractSubsystemBaseTest {
+public class MessagingActiveMQSubsystem_8_0_TestCase extends AbstractSubsystemBaseTest {
 
-    public MessagingActiveMQSubsystem_7_0_TestCase() {
+    public MessagingActiveMQSubsystem_8_0_TestCase() {
         super(MessagingExtension.SUBSYSTEM_NAME, new MessagingExtension());
     }
 
     @Override
     protected String getSubsystemXml() throws IOException {
-        return readResource("subsystem_7_0.xml");
+        return readResource("subsystem_8_0.xml");
     }
 
     @Override
     protected String getSubsystemXsdPath() throws IOException {
-        return "schema/wildfly-messaging-activemq_7_0.xsd";
+        return "schema/wildfly-messaging-activemq_8_0.xsd";
     }
 
     @Override
@@ -105,9 +105,10 @@ public class MessagingActiveMQSubsystem_7_0_TestCase extends AbstractSubsystemBa
         return properties;
     }
 
+    @Test
     @Override
-    protected KernelServices standardSubsystemTest(String configId, boolean compareXml) throws Exception {
-        return super.standardSubsystemTest(configId, false);
+    public void testSchemaOfSubsystemTemplates() throws Exception {
+        super.testSchemaOfSubsystemTemplates();
     }
 
     @Test
@@ -130,12 +131,16 @@ public class MessagingActiveMQSubsystem_7_0_TestCase extends AbstractSubsystemBa
 
     @Test
     public void testHAPolicyConfiguration() throws Exception {
-        standardSubsystemTest("subsystem_7_0_ha-policy.xml");
+        standardSubsystemTest("subsystem_8_0_ha-policy.xml");
     }
 
     ///////////////////////
     // Transformers test //
     ///////////////////////
+    @Test
+    public void testTransformersWildfly17() throws Exception {
+        testTransformers(ModelTestControllerVersion.MASTER, MessagingExtension.VERSION_7_0_0);
+    }
     @Test
     public void testTransformersWildfly16() throws Exception {
         testTransformers(ModelTestControllerVersion.MASTER, MessagingExtension.VERSION_6_0_0);
@@ -173,7 +178,7 @@ public class MessagingActiveMQSubsystem_7_0_TestCase extends AbstractSubsystemBa
     private void testTransformers(ModelTestControllerVersion controllerVersion, ModelVersion messagingVersion) throws Exception {
         //Boot up empty controllers with the resources needed for the ops coming from the xml to work
         KernelServicesBuilder builder = createKernelServicesBuilder(createAdditionalInitialization())
-                .setSubsystemXmlResource("subsystem_7_0_transform.xml");
+                .setSubsystemXmlResource("subsystem_8_0_transform.xml");
         builder.createLegacyKernelServicesBuilder(createAdditionalInitialization(), controllerVersion, messagingVersion)
                 .addMavenResourceURL(getMessagingActiveMQGAV(controllerVersion))
                 .addMavenResourceURL(getActiveMQDependencies(controllerVersion))
@@ -202,7 +207,7 @@ public class MessagingActiveMQSubsystem_7_0_TestCase extends AbstractSubsystemBa
         assertTrue(mainServices.isSuccessfulBoot());
         assertTrue(mainServices.getLegacyServices(messagingVersion).isSuccessfulBoot());
 
-        List<ModelNode> ops = builder.parseXmlResource("subsystem_7_0_reject_transform.xml");
+        List<ModelNode> ops = builder.parseXmlResource("subsystem_8_0_reject_transform.xml");
         System.out.println("ops = " + ops);
         PathAddress subsystemAddress = PathAddress.pathAddress(SUBSYSTEM_PATH);
 
