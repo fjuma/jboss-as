@@ -22,6 +22,10 @@
 
 package org.jboss.as.mail.extension;
 
+import static org.jboss.as.controller.security.CredentialReference.applyCredentialReferenceUpdateToRuntime;
+import static org.jboss.as.controller.security.CredentialReference.handleCredentialReferenceUpdate;
+import static org.jboss.as.mail.extension.MailServerDefinition.CREDENTIAL_REFERENCE;
+
 import java.util.Collection;
 
 import org.jboss.as.controller.AttributeDefinition;
@@ -29,6 +33,7 @@ import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.RestartParentWriteAttributeHandler;
+import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.naming.deployment.ContextNames;
 import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.ServiceName;
@@ -45,6 +50,24 @@ class MailServerWriteAttributeHandler extends RestartParentWriteAttributeHandler
 
     MailServerWriteAttributeHandler(Collection<AttributeDefinition> attributeDefinitions) {
         super(MailSubsystemModel.MAIL_SESSION, attributeDefinitions);
+    }
+
+    @Override
+    protected void finishModelStage(OperationContext context, ModelNode operation, String attributeName, ModelNode newValue,
+                                    ModelNode oldValue, Resource resource) throws OperationFailedException {
+        super.finishModelStage(context, operation, attributeName, newValue, oldValue, resource);
+        if (attributeName.equals(CREDENTIAL_REFERENCE.getName())) {
+            handleCredentialReferenceUpdate(context, resource.getModel().get(attributeName), attributeName);
+        }
+    }
+
+    @Override
+    protected boolean applyUpdateToRuntime(OperationContext context, ModelNode operation, String attributeName, ModelNode resolvedValue, ModelNode currentValue, HandbackHolder<ModelNode> handbackHolder) throws OperationFailedException {
+        boolean requiresReload = false;
+        if (attributeName.equals(CREDENTIAL_REFERENCE.getName())) {
+            requiresReload = applyCredentialReferenceUpdateToRuntime(context, operation, resolvedValue, currentValue);
+        }
+        return super.applyUpdateToRuntime(context, operation, attributeName, resolvedValue, currentValue, handbackHolder) || requiresReload;
     }
 
     @Override
