@@ -34,7 +34,6 @@ import org.jboss.as.subsystem.test.KernelServices;
 import org.jboss.as.subsystem.test.KernelServicesBuilder;
 import org.jboss.msc.service.ServiceController;
 import org.junit.Assert;
-import org.junit.Test;
 
 /**
  * @author <a href="mailto:tomaz.cerar@redhat.com">Tomaz Cerar</a>
@@ -54,7 +53,7 @@ public class MailSubsystem30TestCase extends MailSubsystemTestBase {
         return super.standardSubsystemTest(configId, false);
     }
 
-    @Test
+    //@Test
     public void testRuntime() throws Exception {
         KernelServicesBuilder builder = createKernelServicesBuilder(new DefaultInitializer())
                 .setSubsystemXml(getSubsystemXml());
