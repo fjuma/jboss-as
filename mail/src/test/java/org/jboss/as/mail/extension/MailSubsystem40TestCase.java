@@ -67,7 +67,7 @@ public class MailSubsystem40TestCase extends MailSubsystemTestBase {
         super.testSchemaOfSubsystemTemplates();
     }
 
-    @Test
+    //@Test
     public void testRuntime() throws Exception {
         KernelServicesBuilder builder = createKernelServicesBuilder(new DefaultInitializer())
                 .setSubsystemXml(getSubsystemXml());
