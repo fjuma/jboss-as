@@ -22,6 +22,7 @@
 
 package org.jboss.as.mail.extension;
 
+import static org.jboss.as.controller.security.CredentialReference.KEY_DELIMITER;
 import static org.jboss.as.mail.extension.MailServerDefinition.OUTBOUND_SOCKET_BINDING_CAPABILITY_NAME;
 import static org.jboss.as.mail.extension.MailSessionDefinition.ATTRIBUTES;
 import static org.jboss.as.mail.extension.MailSessionDefinition.SESSION_CAPABILITY;
@@ -94,17 +95,19 @@ class MailSessionAdd extends AbstractAddStepHandler {
             ModelNode filteredModelNode = model;
             if (modelFilter != null && modelFilter.length > 0) {
                 for (String path : modelFilter) {
-                    if (filteredModelNode.get(path).isDefined())
+                    if (filteredModelNode.get(path).isDefined()) {
                         filteredModelNode = filteredModelNode.get(path);
-                    else
+                    } else {
                         break;
+                    }
                 }
             }
             ModelNode value = MailServerDefinition.CREDENTIAL_REFERENCE.resolveModelAttribute(context, filteredModelNode);
+            String keySuffix = modelFilter[0] + KEY_DELIMITER + modelFilter[1];
             if (value.isDefined()) {
                 serverConfig.getCredentialSourceSupplierInjector()
                         .inject(
-                                CredentialReference.getCredentialSourceSupplier(context, MailServerDefinition.CREDENTIAL_REFERENCE, filteredModelNode, serviceBuilder));
+                                CredentialReference.getCredentialSourceSupplier(context, MailServerDefinition.CREDENTIAL_REFERENCE, filteredModelNode, serviceBuilder, keySuffix));
             }
         }
     }
