@@ -21,6 +21,8 @@
  */
 package org.wildfly.extension.datasources.agroal;
 
+import static org.jboss.as.controller.security.CredentialReference.handleCredentialReferenceUpdate;
+
 import javax.transaction.TransactionSynchronizationRegistry;
 
 import io.agroal.api.configuration.supplier.AgroalConnectionFactoryConfigurationSupplier;
@@ -32,6 +34,7 @@ import org.jboss.as.controller.CapabilityServiceBuilder;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
+import org.jboss.as.controller.registry.Resource;
 import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.ServiceName;
 
@@ -57,6 +60,11 @@ class DataSourceOperations {
 
         private DataSourceAdd() {
             super(DataSourceDefinition.ATTRIBUTES);
+        }
+
+        protected void populateModel(final OperationContext context, final ModelNode operation, final Resource resource) throws  OperationFailedException {
+            super.populateModel(context, operation, resource);
+            handleCredentialReferenceUpdate(context, resource.getModel());
         }
 
         @Override
