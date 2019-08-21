@@ -30,6 +30,7 @@ import static org.jboss.as.connector.subsystems.datasources.Constants.ENABLED;
 import static org.jboss.as.connector.subsystems.datasources.Constants.JNDI_NAME;
 import static org.jboss.as.connector.subsystems.datasources.Constants.JTA;
 import static org.jboss.as.connector.subsystems.datasources.Constants.RECOVERY_AUTHENTICATION_CONTEXT;
+import static org.jboss.as.connector.subsystems.datasources.Constants.RECOVERY_CREDENTIAL_REFERENCE;
 import static org.jboss.as.connector.subsystems.datasources.Constants.RECOVERY_ELYTRON_ENABLED;
 import static org.jboss.as.connector.subsystems.datasources.Constants.RECOVERY_SECURITY_DOMAIN;
 import static org.jboss.as.connector.subsystems.datasources.Constants.SECURITY_DOMAIN;
@@ -38,6 +39,8 @@ import static org.jboss.as.connector.subsystems.datasources.DataSourceModelNodeU
 import static org.jboss.as.connector.subsystems.datasources.DataSourceModelNodeUtil.xaFrom;
 import static org.jboss.as.connector.subsystems.jca.Constants.DEFAULT_NAME;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
+import static org.jboss.as.controller.security.CredentialReference.CREDENTIAL_REFERENCE;
+import static org.jboss.as.controller.security.CredentialReference.handleCredentialReferenceUpdate;
 
 import javax.sql.DataSource;
 import java.sql.Driver;
@@ -112,7 +115,9 @@ public abstract class AbstractDataSourceAdd extends AbstractAddStepHandler {
             DataSourceStatisticsService.registerStatisticsResources(resource);
         }
         super.populateModel(context, operation, resource);
-
+        final ModelNode model = resource.getModel();
+        handleCredentialReferenceUpdate(context, model.get(CREDENTIAL_REFERENCE), CREDENTIAL_REFERENCE);
+        handleCredentialReferenceUpdate(context, model.get(RECOVERY_CREDENTIAL_REFERENCE.getName()), RECOVERY_CREDENTIAL_REFERENCE.getName());
     }
 
     @Override
@@ -254,11 +259,11 @@ public abstract class AbstractDataSourceAdd extends AbstractAddStepHandler {
                              CredentialReference.getCredentialSourceSupplier(context, Constants.CREDENTIAL_REFERENCE, model, dataSourceServiceBuilder));
          }
 
-         ModelNode recoveryCredentialReference = Constants.RECOVERY_CREDENTIAL_REFERENCE.resolveModelAttribute(context, model);
+         ModelNode recoveryCredentialReference = RECOVERY_CREDENTIAL_REFERENCE.resolveModelAttribute(context, model);
          if (recoveryCredentialReference.isDefined()) {
              dataSourceService.getRecoveryCredentialSourceSupplierInjector()
                      .inject(
-                             CredentialReference.getCredentialSourceSupplier(context, Constants.RECOVERY_CREDENTIAL_REFERENCE, model, dataSourceServiceBuilder));
+                             CredentialReference.getCredentialSourceSupplier(context, RECOVERY_CREDENTIAL_REFERENCE, model, dataSourceServiceBuilder));
          }
 
         dataSourceServiceBuilder.setInitialMode(ServiceController.Mode.NEVER);
