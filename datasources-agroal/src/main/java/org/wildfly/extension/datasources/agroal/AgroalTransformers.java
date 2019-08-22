@@ -55,7 +55,7 @@ public class AgroalTransformers implements ExtensionTransformerRegistration {
 
     private static void from2(ChainedTransformationDescriptionBuilder chainedBuilder) {
         ResourceTransformationDescriptionBuilder builder = chainedBuilder.createBuilder(AGROAL_2_0, AGROAL_1_0);
-        builder.addChildResource(PathElement.pathElement("datasource", "datasource1"))
+        builder.addChildResource(PathElement.pathElement("datasource"))
                 .getAttributeBuilder()
                 .addRejectCheck(REJECT_CREDENTIAL_REFERENCE_WITH_BOTH_STORE_AND_CLEAR_TEXT, CREDENTIAL_REFERENCE)
                 .end();

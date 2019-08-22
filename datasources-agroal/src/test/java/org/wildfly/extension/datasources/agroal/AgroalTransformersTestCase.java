@@ -1,7 +1,5 @@
 package org.wildfly.extension.datasources.agroal;
 
-import static org.jboss.as.model.test.ModelTestControllerVersion.EAP_7_0_0;
-import static org.jboss.as.model.test.ModelTestControllerVersion.EAP_7_1_0;
 import static org.jboss.as.model.test.ModelTestControllerVersion.EAP_7_2_0;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -14,6 +12,7 @@ import org.jboss.as.controller.ModelVersion;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
+import org.jboss.as.controller.security.CredentialReference;
 import org.jboss.as.model.test.FailedOperationTransformationConfig;
 import org.jboss.as.model.test.ModelTestControllerVersion;
 import org.jboss.as.model.test.ModelTestUtils;
@@ -46,7 +45,7 @@ public class AgroalTransformersTestCase extends AbstractSubsystemBaseTest {
     @Test
     public void testRejectingTransformersEAP_7_2_0() throws Exception {
         PathAddress address = PathAddress.pathAddress(ModelDescriptionConstants.SUBSYSTEM, AgroalExtension.SUBSYSTEM_NAME);
-        testRejectingTransformers(EAP_7_1_0, "agroal_2_0-reject.xml", new FailedOperationTransformationConfig()
+        testRejectingTransformers(EAP_7_2_0, AGROAL_1_0, "agroal_2_0-reject.xml", new FailedOperationTransformationConfig()
                 .addFailedAttribute(address.append(PathElement.pathElement("datasource", "datsourceWithCredentialReference")),
                         FailedOperationTransformationConfig.REJECTED_RESOURCE)
         );
@@ -84,11 +83,10 @@ public class AgroalTransformersTestCase extends AbstractSubsystemBaseTest {
         assertNotNull(transformed);
     }
 
-    private void testRejectingTransformers(ModelTestControllerVersion controllerVersion, final String subsystemXmlFile, final FailedOperationTransformationConfig config) throws Exception {
-        ModelVersion version = controllerVersion.getSubsystemModelVersion(getMainSubsystemName());
-        KernelServicesBuilder builder = this.createKernelServicesBuilder(AdditionalInitialization.MANAGEMENT).setSubsystemXml(subsystemXmlFile);
-        builder.createLegacyKernelServicesBuilder(null, controllerVersion, version)
-                .addMavenResourceURL(controllerVersion.getCoreMavenGroupId() + ":wildfly-datasources-agroal" + controllerVersion.getCoreVersion())
+    private void testRejectingTransformers(ModelTestControllerVersion controllerVersion, ModelVersion version, final String subsystemXmlFile, final FailedOperationTransformationConfig config) throws Exception {
+        KernelServicesBuilder builder = this.createKernelServicesBuilder(createAdditionalInitialization());
+        builder.createLegacyKernelServicesBuilder(createAdditionalInitialization(), controllerVersion, version)
+                .addMavenResourceURL(getGav(controllerVersion))
                 .dontPersistXml();
 
         KernelServices mainServices = builder.build();
@@ -97,6 +95,15 @@ public class AgroalTransformersTestCase extends AbstractSubsystemBaseTest {
 
         List<ModelNode> ops = builder.parseXmlResource(subsystemXmlFile);
         ModelTestUtils.checkFailedTransformedBootOperations(mainServices, version, ops, config);
+    }
+
+    @Override
+    protected AdditionalInitialization createAdditionalInitialization() {
+        // Create a AdditionalInitialization.MANAGEMENT variant that has all the external capabilities used by the various configs used in this test class
+        return AdditionalInitialization.withCapabilities(
+                AbstractDataSourceDefinition.AUTHENTICATION_CONTEXT_CAPABILITY + ".secure-context",
+                CredentialReference.CREDENTIAL_STORE_CAPABILITY + ".test-store"
+        );
     }
 
     @Override
