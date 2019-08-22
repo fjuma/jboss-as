@@ -22,6 +22,7 @@
 package org.wildfly.extension.datasources.agroal;
 
 import static org.jboss.as.controller.security.CredentialReference.REJECT_CREDENTIAL_REFERENCE_WITH_BOTH_STORE_AND_CLEAR_TEXT;
+import static org.wildfly.extension.datasources.agroal.AbstractDataSourceDefinition.CONNECTION_FACTORY_ATTRIBUTE;
 import static org.wildfly.extension.datasources.agroal.AbstractDataSourceDefinition.CREDENTIAL_REFERENCE;
 
 import org.jboss.as.controller.ModelVersion;
@@ -55,7 +56,10 @@ public class AgroalTransformers implements ExtensionTransformerRegistration {
 
     private static void from2(ChainedTransformationDescriptionBuilder chainedBuilder) {
         ResourceTransformationDescriptionBuilder builder = chainedBuilder.createBuilder(AGROAL_2_0, AGROAL_1_0);
-        builder.addChildResource(PathElement.pathElement("datasource"))
+
+        ResourceTransformationDescriptionBuilder datasourceBuilder = builder.addChildResource(PathElement.pathElement("datasource"));
+        datasourceBuilder
+                //.addChildResource(PathElement.pathElement(CONNECTION_FACTORY_ATTRIBUTE.getName()))
                 .getAttributeBuilder()
                 .addRejectCheck(REJECT_CREDENTIAL_REFERENCE_WITH_BOTH_STORE_AND_CLEAR_TEXT, CREDENTIAL_REFERENCE)
                 .end();

@@ -3,6 +3,7 @@ package org.wildfly.extension.datasources.agroal;
 import static org.jboss.as.model.test.ModelTestControllerVersion.EAP_7_2_0;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.wildfly.extension.datasources.agroal.AbstractDataSourceDefinition.CONNECTION_FACTORY_ATTRIBUTE;
 import static org.wildfly.extension.datasources.agroal.AgroalTransformers.AGROAL_1_0;
 
 import java.io.IOException;
@@ -46,7 +47,7 @@ public class AgroalTransformersTestCase extends AbstractSubsystemBaseTest {
     public void testRejectingTransformersEAP_7_2_0() throws Exception {
         PathAddress address = PathAddress.pathAddress(ModelDescriptionConstants.SUBSYSTEM, AgroalExtension.SUBSYSTEM_NAME);
         testRejectingTransformers(EAP_7_2_0, AGROAL_1_0, "agroal_2_0-reject.xml", new FailedOperationTransformationConfig()
-                .addFailedAttribute(address.append(PathElement.pathElement("datasource", "datsourceWithCredentialReference")),
+                .addFailedAttribute(address.append(PathElement.pathElement("datasource", "datasourceWithCredentialReference")),//.append(PathElement.pathElement(CONNECTION_FACTORY_ATTRIBUTE.getName())),
                         FailedOperationTransformationConfig.REJECTED_RESOURCE)
         );
     }
