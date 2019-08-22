@@ -3,7 +3,6 @@ package org.wildfly.extension.datasources.agroal;
 import static org.jboss.as.model.test.ModelTestControllerVersion.EAP_7_2_0;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.wildfly.extension.datasources.agroal.AbstractDataSourceDefinition.CONNECTION_FACTORY_ATTRIBUTE;
 import static org.wildfly.extension.datasources.agroal.AgroalTransformers.AGROAL_1_0;
 
 import java.io.IOException;
