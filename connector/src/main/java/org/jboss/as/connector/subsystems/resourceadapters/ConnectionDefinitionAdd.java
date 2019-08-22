@@ -39,6 +39,7 @@ import static org.jboss.as.connector.subsystems.resourceadapters.Constants.SECUR
 import static org.jboss.as.connector.subsystems.resourceadapters.Constants.SECURITY_DOMAIN_AND_APPLICATION;
 import static org.jboss.as.connector.subsystems.resourceadapters.Constants.STATISTICS_ENABLED;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
+import static org.jboss.as.controller.security.CredentialReference.handleCredentialReferenceUpdate;
 
 import org.jboss.as.connector._private.Capabilities;
 import org.jboss.as.connector.logging.ConnectorLogger;
@@ -72,6 +73,13 @@ import org.wildfly.security.auth.client.AuthenticationContext;
 public class ConnectionDefinitionAdd extends AbstractAddStepHandler {
 
     public static final ConnectionDefinitionAdd INSTANCE = new ConnectionDefinitionAdd();
+
+    @Override
+    protected void populateModel(final OperationContext context, final ModelNode operation, final Resource resource) throws OperationFailedException {
+        super.populateModel(context, operation, resource);
+        final ModelNode model = resource.getModel();
+        handleCredentialReferenceUpdate(context, model.get(RECOVERY_CREDENTIAL_REFERENCE.getName()), RECOVERY_CREDENTIAL_REFERENCE.getName());
+    }
 
     @Override
     protected void populateModel(ModelNode operation, ModelNode modelNode) throws OperationFailedException {
