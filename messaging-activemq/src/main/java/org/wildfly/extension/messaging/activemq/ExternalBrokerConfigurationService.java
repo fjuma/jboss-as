@@ -15,6 +15,7 @@
  */
 package org.wildfly.extension.messaging.activemq;
 
+import java.util.Collections;
 import java.util.Map;
 import org.apache.activemq.artemis.api.core.DiscoveryGroupConfiguration;
 import org.apache.activemq.artemis.api.core.TransportConfiguration;
@@ -64,31 +65,31 @@ public class ExternalBrokerConfigurationService implements Service<ExternalBroke
     }
 
     public Map<String, TransportConfiguration> getConnectors() {
-        return connectors;
+        return Collections.unmodifiableMap(connectors);
     }
 
     public Map<String, ServiceName> getSocketBindings() {
-        return socketBindings;
+        return Collections.unmodifiableMap(socketBindings);
     }
 
     public Map<String, ServiceName> getOutboundSocketBindings() {
-        return outboundSocketBindings;
+        return Collections.unmodifiableMap(outboundSocketBindings);
     }
 
     public Map<String, ServiceName> getGroupBindings() {
-        return groupBindings;
+        return Collections.unmodifiableMap(groupBindings);
     }
 
     public Map<String, String> getClusterNames() {
-        return clusterNames;
+        return Collections.unmodifiableMap(clusterNames);
     }
 
     public Map<String, ServiceName> getCommandDispatcherFactories() {
-        return commandDispatcherFactories;
+        return Collections.unmodifiableMap(commandDispatcherFactories);
     }
 
     public Map<String, DiscoveryGroupConfiguration> getDiscoveryGroupConfigurations() {
-        return discoveryGroupConfigurations;
+        return Collections.unmodifiableMap(discoveryGroupConfigurations);
     }
 
     @Override

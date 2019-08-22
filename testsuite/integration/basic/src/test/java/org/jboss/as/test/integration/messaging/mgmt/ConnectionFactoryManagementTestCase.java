@@ -40,8 +40,6 @@ import static org.junit.Assert.fail;
 
 import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
-import org.jboss.as.arquillian.api.ContainerResource;
-import org.jboss.as.arquillian.container.ManagementClient;
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.controller.client.helpers.Operations;
 import org.jboss.as.test.integration.common.jms.JMSOperations;
@@ -64,12 +62,9 @@ public class ConnectionFactoryManagementTestCase extends ContainerResourceMgmtTe
 
     private static final String CF_NAME = randomUUID().toString();
 
-    @ContainerResource
-    private ManagementClient managementClient;
-
     @Test
     public void testWriteDiscoveryGroupAttributeWhenConnectorIsAlreadyDefined() throws Exception {
-        JMSOperations jmsOperations = JMSOperationsProvider.getInstance(managementClient.getControllerClient());
+        JMSOperations jmsOperations = JMSOperationsProvider.getInstance(getModelControllerClient());
 
         ModelNode attributes = new ModelNode();
         attributes.get("connectors").add("in-vm");
@@ -91,31 +86,31 @@ public class ConnectionFactoryManagementTestCase extends ContainerResourceMgmtTe
         }
 
         jmsOperations.removeJmsConnectionFactory(CF_NAME);
-        ServerReload.executeReloadAndWaitForCompletion(managementClient.getControllerClient());
+        ServerReload.executeReloadAndWaitForCompletion(getModelControllerClient());
     }
 
     @Test
     public void testRemoveReferencedConnector() throws Exception {
-        JMSOperations jmsOperations = JMSOperationsProvider.getInstance(managementClient.getControllerClient());
+        JMSOperations jmsOperations = JMSOperationsProvider.getInstance(getModelControllerClient());
         ModelNode address = jmsOperations.getServerAddress().add("in-vm-connector", "in-vm-test");
         ModelNode addOp = Operations.createAddOperation(address);
         addOp.get("server-id").set(0);
         ModelNode params = addOp.get("params").setEmptyList();
         params.add("buffer-pooling", ModelNode.FALSE);
-        managementClient.getControllerClient().execute(addOp);
+        getModelControllerClient().execute(addOp);
         ModelNode attributes = new ModelNode();
         attributes.get("connectors").add("in-vm-test");
         jmsOperations.addJmsConnectionFactory(CF_NAME, "java:/jms/" + CF_NAME, attributes);
         try {
-            execute(managementClient.getControllerClient(), Operations.createRemoveOperation(address));
+            execute(getModelControllerClient(), Operations.createRemoveOperation(address));
             fail("it is not possible to remove a connector when it is referenced from a connection factory");
         } catch (Exception e) {
             assertTrue(e.getMessage(), e.getMessage().contains("WFLYCTL0367"));
         } finally {
             jmsOperations.removeJmsConnectionFactory(CF_NAME);
-            managementClient.getControllerClient().execute( Operations.createRemoveOperation(address));
+            getModelControllerClient().execute( Operations.createRemoveOperation(address));
         }
-        ServerReload.executeReloadAndWaitForCompletion(managementClient.getControllerClient());
+        ServerReload.executeReloadAndWaitForCompletion(getModelControllerClient());
     }
 
     private static ModelNode execute(ModelControllerClient client, ModelNode operation) throws Exception {
