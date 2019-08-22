@@ -22,7 +22,6 @@
 package org.wildfly.extension.datasources.agroal;
 
 import static org.jboss.as.controller.security.CredentialReference.REJECT_CREDENTIAL_REFERENCE_WITH_BOTH_STORE_AND_CLEAR_TEXT;
-import static org.wildfly.extension.datasources.agroal.AbstractDataSourceDefinition.CONNECTION_FACTORY_ATTRIBUTE;
 import static org.wildfly.extension.datasources.agroal.AbstractDataSourceDefinition.CREDENTIAL_REFERENCE;
 
 import org.jboss.as.controller.ModelVersion;
