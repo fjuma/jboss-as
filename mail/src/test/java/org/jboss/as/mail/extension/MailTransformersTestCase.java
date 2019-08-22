@@ -22,7 +22,6 @@
 
 package org.jboss.as.mail.extension;
 
-import static org.jboss.as.mail.extension.MailServerDefinition.ATTRIBUTES_CUSTOM;
 import static org.jboss.as.mail.extension.MailServerDefinition.CREDENTIAL_REFERENCE;
 import static org.jboss.as.mail.extension.MailTransformers.MODEL_VERSION_EAP6X;
 import static org.jboss.as.mail.extension.MailTransformers.MODEL_VERSION_EAP70;
