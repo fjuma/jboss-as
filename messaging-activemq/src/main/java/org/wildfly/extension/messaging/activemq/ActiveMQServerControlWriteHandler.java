@@ -24,6 +24,9 @@ package org.wildfly.extension.messaging.activemq;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
+import static org.jboss.as.controller.security.CredentialReference.applyCredentialReferenceUpdateToRuntime;
+import static org.jboss.as.controller.security.CredentialReference.handleCredentialReferenceUpdate;
+import static org.wildfly.extension.messaging.activemq.ServerDefinition.CREDENTIAL_REFERENCE;
 
 import org.apache.activemq.artemis.api.core.management.ActiveMQServerControl;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
@@ -38,6 +41,7 @@ import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.ImmutableManagementResourceRegistration;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.registry.Resource;
 import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
@@ -66,10 +70,22 @@ public class ActiveMQServerControlWriteHandler extends AbstractWriteAttributeHan
     }
 
     @Override
+    protected void finishModelStage(OperationContext context, ModelNode operation, String attributeName, ModelNode newValue,
+                                    ModelNode oldValue, Resource resource) throws OperationFailedException {
+        super.finishModelStage(context, operation, attributeName, newValue, oldValue, resource);
+        if (attributeName.equals(CREDENTIAL_REFERENCE.getName())) {
+            handleCredentialReferenceUpdate(context, resource.getModel().get(attributeName), attributeName);
+        }
+    }
+
+    @Override
     protected boolean applyUpdateToRuntime(final OperationContext context, final ModelNode operation, final String attributeName,
                                            final ModelNode newValue, final ModelNode currentValue,
                                            final HandbackHolder<Void> handbackHolder) throws OperationFailedException {
         AttributeDefinition attr = getAttributeDefinition(attributeName);
+        if (attr.equals(CREDENTIAL_REFERENCE)) {
+            return applyCredentialReferenceUpdateToRuntime(context, operation, newValue, currentValue);
+        }
         if (attr.getFlags().contains(AttributeAccess.Flag.RESTART_ALL_SERVICES)) {
             // Restart required
             return true;
