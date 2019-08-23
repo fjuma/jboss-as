@@ -22,6 +22,7 @@
 
 package org.wildfly.extension.messaging.activemq;
 
+import static org.jboss.as.controller.security.CredentialReference.REJECT_CREDENTIAL_REFERENCE_WITH_BOTH_STORE_AND_CLEAR_TEXT;
 import static org.jboss.as.controller.transform.description.RejectAttributeChecker.DEFINED;
 import static org.jboss.as.controller.transform.description.RejectAttributeChecker.UNDEFINED;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.CONNECTOR;
@@ -95,6 +96,26 @@ public class MessagingTransformerRegistration implements ExtensionTransformerReg
         server.addChildRedirection(SocketDiscoveryGroupDefinition.PATH, DiscoveryGroupDefinition.PATH);
         server.addChildResource(DiscoveryGroupDefinition.PATH).setCustomResourceTransformer(ResourceTransformer.DISCARD);
         server.addChildResource(MessagingExtension.BROADCAST_GROUP_PATH).setCustomResourceTransformer(ResourceTransformer.DISCARD);
+        server.getAttributeBuilder()
+                .addRejectCheck(REJECT_CREDENTIAL_REFERENCE_WITH_BOTH_STORE_AND_CLEAR_TEXT, ServerDefinition.CREDENTIAL_REFERENCE.getName())
+                .end();
+        ResourceTransformationDescriptionBuilder bridge = server.addChildResource(MessagingExtension.BRIDGE_PATH);
+        bridge.getAttributeBuilder()
+                .addRejectCheck(REJECT_CREDENTIAL_REFERENCE_WITH_BOTH_STORE_AND_CLEAR_TEXT, BridgeDefinition.CREDENTIAL_REFERENCE.getName())
+                .end();
+
+        ResourceTransformationDescriptionBuilder jmsBridge = subsystem.addChildResource(MessagingExtension.JMS_BRIDGE_PATH);
+        jmsBridge.getAttributeBuilder()
+                .addRejectCheck(REJECT_CREDENTIAL_REFERENCE_WITH_BOTH_STORE_AND_CLEAR_TEXT, JMSBridgeDefinition.SOURCE_CREDENTIAL_REFERENCE.getName())
+                .end();
+        jmsBridge.getAttributeBuilder()
+                .addRejectCheck(REJECT_CREDENTIAL_REFERENCE_WITH_BOTH_STORE_AND_CLEAR_TEXT, JMSBridgeDefinition.TARGET_CREDENTIAL_REFERENCE.getName())
+                .end();
+
+        ResourceTransformationDescriptionBuilder pooledConnectionFactory = server.addChildResource(MessagingExtension.POOLED_CONNECTION_FACTORY_PATH);
+        pooledConnectionFactory.getAttributeBuilder()
+                .addRejectCheck(REJECT_CREDENTIAL_REFERENCE_WITH_BOTH_STORE_AND_CLEAR_TEXT, ConnectionFactoryAttributes.Pooled.CREDENTIAL_REFERENCE)
+                .end();
     }
 
     private static void registerTransformers_WF_18(ResourceTransformationDescriptionBuilder subsystem) {
