@@ -22,6 +22,8 @@
 
 package org.jboss.as.clustering.jgroups.subsystem;
 
+import static org.jboss.as.controller.security.CredentialReference.REJECT_CREDENTIAL_REFERENCE_WITH_BOTH_STORE_AND_CLEAR_TEXT;
+
 import java.util.EnumSet;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
@@ -76,6 +78,17 @@ public class ProtocolResourceDefinition extends AbstractProtocolResourceDefiniti
 
     static void addTransformations(ModelVersion version, ResourceTransformationDescriptionBuilder builder) {
         AbstractProtocolResourceDefinition.addTransformations(version, builder);
+
+        if (JGroupsModel.VERSION_8_0_0.requiresTransformation(version)) {
+            builder.getAttributeBuilder()
+                    .addRejectCheck(REJECT_CREDENTIAL_REFERENCE_WITH_BOTH_STORE_AND_CLEAR_TEXT, EncryptProtocolResourceDefinition.Attribute.KEY_CREDENTIAL.getName())
+                    .end();
+            builder.addChildResource(PathElement.pathElement("token"))
+                    .getAttributeBuilder()
+                    .addRejectCheck(REJECT_CREDENTIAL_REFERENCE_WITH_BOTH_STORE_AND_CLEAR_TEXT, AuthTokenResourceDefinition.Attribute.SHARED_SECRET.getName())
+                    .addRejectCheck(REJECT_CREDENTIAL_REFERENCE_WITH_BOTH_STORE_AND_CLEAR_TEXT, CipherAuthTokenResourceDefinition.Attribute.KEY_CREDENTIAL.getName())
+                    .end();
+        }
 
         if (JGroupsModel.VERSION_4_1_0.requiresTransformation(version)) {
             // See WFLY-6782, add-index parameter was missing from add operation definition
@@ -201,4 +214,5 @@ public class ProtocolResourceDefinition extends AbstractProtocolResourceDefiniti
     ProtocolResourceDefinition(PathElement path, UnaryOperator<ResourceDescriptor> configurator, ResourceServiceConfiguratorFactory serviceConfiguratorFactory, ResourceServiceConfiguratorFactory parentServiceConfiguratorFactory) {
         super(new Parameters(path, path.isWildcard() ? JGroupsExtension.SUBSYSTEM_RESOLVER.createChildResolver(path) : JGroupsExtension.SUBSYSTEM_RESOLVER.createChildResolver(path, WILDCARD_PATH)).setOrderedChild(), new ResourceDescriptorConfigurator(configurator), serviceConfiguratorFactory, parentServiceConfiguratorFactory);
     }
+
 }
