@@ -23,7 +23,10 @@
 package org.wildfly.extension.messaging.activemq.jms.bridge;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
+import static org.jboss.as.controller.security.CredentialReference.handleCredentialReferenceUpdate;
 import static org.jboss.as.server.Services.requireServerExecutor;
+import static org.wildfly.extension.messaging.activemq.jms.bridge.JMSBridgeDefinition.SOURCE_CREDENTIAL_REFERENCE;
+import static org.wildfly.extension.messaging.activemq.jms.bridge.JMSBridgeDefinition.TARGET_CREDENTIAL_REFERENCE;
 
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
@@ -44,6 +47,7 @@ import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.SimpleAttributeDefinition;
+import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.controller.security.CredentialReference;
 import org.jboss.as.naming.deployment.ContextNames;
 import org.jboss.dmr.ModelNode;
@@ -72,6 +76,14 @@ public class JMSBridgeAdd extends AbstractAddStepHandler {
 
     private JMSBridgeAdd() {
         super(JMSBridgeDefinition.ATTRIBUTES);
+    }
+
+    @Override
+    protected void populateModel(final OperationContext context, final ModelNode operation, final Resource resource) throws  OperationFailedException {
+        super.populateModel(context, operation, resource);
+        final ModelNode model = resource.getModel();
+        handleCredentialReferenceUpdate(context, model.get(SOURCE_CREDENTIAL_REFERENCE.getName()), SOURCE_CREDENTIAL_REFERENCE.getName());
+        handleCredentialReferenceUpdate(context, model.get(TARGET_CREDENTIAL_REFERENCE.getName()), TARGET_CREDENTIAL_REFERENCE.getName());
     }
 
     @Override
@@ -106,8 +118,8 @@ public class JMSBridgeAdd extends AbstractAddStepHandler {
                 jmsBridgeServiceBuilder.requires(MessagingServices.ACTIVEMQ_CLIENT_THREAD_POOL);
                 // adding credential source supplier which will later resolve password from CredentialStore using credential-reference
                 final JMSBridgeService bridgeService = new JMSBridgeService(moduleName, bridgeName, bridge, executorSupplier,
-                        getCredentialStoreReference(JMSBridgeDefinition.SOURCE_CREDENTIAL_REFERENCE, context, model, jmsBridgeServiceBuilder),
-                        getCredentialStoreReference(JMSBridgeDefinition.TARGET_CREDENTIAL_REFERENCE, context, model, jmsBridgeServiceBuilder));
+                        getCredentialStoreReference(SOURCE_CREDENTIAL_REFERENCE, context, model, jmsBridgeServiceBuilder),
+                        getCredentialStoreReference(TARGET_CREDENTIAL_REFERENCE, context, model, jmsBridgeServiceBuilder));
                 jmsBridgeServiceBuilder.setInstance(bridgeService);
                 jmsBridgeServiceBuilder.install();
 

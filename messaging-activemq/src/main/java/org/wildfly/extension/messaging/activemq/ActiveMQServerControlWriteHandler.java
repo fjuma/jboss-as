@@ -24,6 +24,7 @@ package org.wildfly.extension.messaging.activemq;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
+import static org.wildfly.extension.messaging.activemq.ServerDefinition.CREDENTIAL_REFERENCE;
 
 import org.apache.activemq.artemis.api.core.management.ActiveMQServerControl;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
@@ -38,6 +39,7 @@ import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.ImmutableManagementResourceRegistration;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.security.CredentialReferenceWriteAttributeHandler;
 import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
@@ -52,6 +54,7 @@ import org.wildfly.extension.messaging.activemq.logging.MessagingLogger;
 public class ActiveMQServerControlWriteHandler extends AbstractWriteAttributeHandler<Void> {
 
     public static final ActiveMQServerControlWriteHandler INSTANCE = new ActiveMQServerControlWriteHandler();
+    private static final CredentialReferenceWriteAttributeHandler credentialReferenceWriteAttributeHandler = new CredentialReferenceWriteAttributeHandler(CREDENTIAL_REFERENCE);
 
     private ActiveMQServerControlWriteHandler() {
         super(ServerDefinition.ATTRIBUTES);
@@ -60,7 +63,11 @@ public class ActiveMQServerControlWriteHandler extends AbstractWriteAttributeHan
     public void registerAttributes(final ManagementResourceRegistration registry, boolean registerRuntimeOnly) {
         for (AttributeDefinition attr : ServerDefinition.ATTRIBUTES) {
             if (registerRuntimeOnly || !attr.getFlags().contains(AttributeAccess.Flag.STORAGE_RUNTIME)) {
-                registry.registerReadWriteAttribute(attr, null, this);
+                if (attr.equals(CREDENTIAL_REFERENCE)) {
+                    registry.registerReadWriteAttribute(attr, null, credentialReferenceWriteAttributeHandler);
+                } else {
+                    registry.registerReadWriteAttribute(attr, null, this);
+                }
             }
         }
     }

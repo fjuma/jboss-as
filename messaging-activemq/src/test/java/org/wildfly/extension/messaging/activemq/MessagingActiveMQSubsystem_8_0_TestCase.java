@@ -29,6 +29,7 @@ import static org.jboss.as.model.test.ModelTestControllerVersion.EAP_7_0_0;
 import static org.jboss.as.model.test.ModelTestControllerVersion.EAP_7_1_0;
 import static org.junit.Assert.assertTrue;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.DEFAULT;
+import static org.wildfly.extension.messaging.activemq.CommonAttributes.JMS_BRIDGE;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.SERVER;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.SUBSYSTEM;
 import static org.wildfly.extension.messaging.activemq.MessagingDependencies.getActiveMQDependencies;
@@ -212,6 +213,16 @@ public class MessagingActiveMQSubsystem_8_0_TestCase extends AbstractSubsystemBa
         PathAddress subsystemAddress = PathAddress.pathAddress(SUBSYSTEM_PATH);
 
         FailedOperationTransformationConfig config = new FailedOperationTransformationConfig();
+        if (messagingVersion.compareTo(MessagingExtension.VERSION_8_0_0) > 0) {
+            config.addFailedAttribute(subsystemAddress.append(pathElement(SERVER, "server1")),
+                    FailedOperationTransformationConfig.REJECTED_RESOURCE);
+            config.addFailedAttribute(subsystemAddress.append(pathElement(SERVER, "server2")).append(BRIDGE_PATH),
+                    FailedOperationTransformationConfig.REJECTED_RESOURCE);
+            config.addFailedAttribute(subsystemAddress.append(pathElement(SERVER, "server3")).append(POOLED_CONNECTION_FACTORY_PATH),
+                    FailedOperationTransformationConfig.REJECTED_RESOURCE);
+            config.addFailedAttribute(subsystemAddress.append(pathElement(JMS_BRIDGE, "bridge-with-credential-reference")),
+                    FailedOperationTransformationConfig.REJECTED_RESOURCE);
+        }
         if (messagingVersion.equals(MessagingExtension.VERSION_1_0_0)) {
             config.addFailedAttribute(subsystemAddress,
                         new FailedOperationTransformationConfig.NewAttributesConfig(
@@ -326,6 +337,7 @@ public class MessagingActiveMQSubsystem_8_0_TestCase extends AbstractSubsystemBa
             config.addFailedAttribute(subsystemAddress.append(POOLED_CONNECTION_FACTORY_PATH), new FailedOperationTransformationConfig.NewAttributesConfig(ConnectionFactoryAttributes.External.ENABLE_AMQ1_PREFIX, ConnectionFactoryAttributes.Common.USE_TOPOLOGY));
             config.addFailedAttribute(subsystemAddress.append(CONNECTION_FACTORY_PATH), new FailedOperationTransformationConfig.NewAttributesConfig(ConnectionFactoryAttributes.External.ENABLE_AMQ1_PREFIX, ConnectionFactoryAttributes.Common.USE_TOPOLOGY));
         }
+
         ModelTestUtils.checkFailedTransformedBootOperations(mainServices, messagingVersion, ops, config);
     }
 
