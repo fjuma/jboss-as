@@ -22,6 +22,7 @@
 
 package org.wildfly.extension.messaging.activemq.jms;
 
+import static org.jboss.as.controller.security.CredentialReference.handleCredentialReferenceUpdate;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.JGROUPS_CLUSTER;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.LOCAL;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.LOCAL_TX;
@@ -61,6 +62,12 @@ public class PooledConnectionFactoryAdd extends AbstractAddStepHandler {
 
     private PooledConnectionFactoryAdd() {
         super(getDefinitions(PooledConnectionFactoryDefinition.ATTRIBUTES));
+    }
+
+    @Override
+    protected void populateModel(final OperationContext context, final ModelNode operation, final Resource resource) throws  OperationFailedException {
+        super.populateModel(context, operation, resource);
+        handleCredentialReferenceUpdate(context, resource.getModel());
     }
 
     @Override

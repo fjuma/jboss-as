@@ -165,6 +165,90 @@
                          jgroups-channel="ee"
                          jgroups-cluster="activemq-cluster"/>
     </server>
+    <server name="server2">
+
+        <security elytron-domain="elytronDomain"/>
+        <cluster user="testuser">
+            <credential-reference store="cs1" alias="testuser" clear-text="clusterpass"/>
+        </cluster>
+        <journal datasource="fooDS"
+                 database="mysql"
+                 jdbc-lock-expiration="891"
+                 jdbc-lock-renew-period="892"
+                 jdbc-network-timeout="4567"
+                 messages-table="MY_MESSAGES"
+                 bindings-table="MY_BINDINGS"
+                 jms-bindings-table="MY_JMS_BINDINGS"
+                 large-messages-table="MY_LARGE_MESSAGES"
+                 node-manager-store-table="MY_NODE_MANAGER_STORE"
+                 page-store-table="MY_PAGE_STORE"
+                 global-max-disk-usage="70"
+                 global-max-memory-size="100000"
+                 disk-scan-period="10000"
+                 file-open-timeout="7"/>
+
+        <http-connector name="http"
+                        socket-binding="http"
+                        endpoint="http"
+                        server-name="=foo">
+            <param name="batch-delay" value="${batch.delay:50}"/>
+        </http-connector>
+
+        <cluster-connection name="cc1"
+                            address="${address:cc1-address}"
+                            connector-name="netty"
+                            producer-window-size="${producer.windows.size:5678}"/>
+
+        <bridge name="bridge1"
+                queue-name="${queue.name:coreQueueA}"
+                forwarding-address="${forwarding.address:forwardingaddress1}"
+                producer-window-size="${producer.windows.size:5678}"
+                user="${user:Brian}">
+            <credential-reference clear-text="secret1"/>
+        </bridge>
+        <bridge name="bridge2"
+                queue-name="${queue.name:coreQueueA}"
+                forwarding-address="${forwarding.address:forwardingaddress1}"
+                producer-window-size="${producer.windows.size:5678}"
+                user="${user:Brian}"
+                password="${password:secret}">
+        </bridge>
+
+        <connection-factory name="otherConnectionFactory"
+                            discovery-group="groupC"
+                            entries="otherConnectionFactory"
+                            deserialization-black-list="org.foo.Bar org.foo.Baz"
+                            deserialization-white-list="org.bar.Bar org.baz.Baz"
+                            initial-message-packet-size="${initial.message.packet.size:12345}"/>
+
+        <pooled-connection-factory name="hornetq-ra-local"
+                                   transaction="local"
+                                   user="alice"
+                                   password="alicepassword"
+                                   entries="java:/JmsLocal"
+                                   statistics-enabled="true">
+            <inbound-config
+                    rebalance-connections="true" />
+            <outbound-config
+                    allow-local-transactions="true" />
+
+        </pooled-connection-factory>
+        <pooled-connection-factory name="pcf-with-credential-reference"
+                                   entries="java:/JmsLocal2"
+                                   user="foo"
+                                   deserialization-black-list="org.foo.Bar org.foo.Baz"
+                                   deserialization-white-list="org.bar.Bar org.baz.Baz">
+            <credential-reference clear-text="passwordOut!"/>
+        </pooled-connection-factory>
+
+        <broadcast-group name="groupT"
+                         jgroups-channel="ee"
+                         jgroups-cluster="activemq-cluster"/>
+
+        <discovery-group name="groupU"
+                         jgroups-channel="ee"
+                         jgroups-cluster="activemq-cluster"/>
+    </server>
     <server name="other">
         <replication-master />
     </server>
