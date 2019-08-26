@@ -79,9 +79,14 @@ public class ProtocolResourceDefinition extends AbstractProtocolResourceDefiniti
     static void addTransformations(ModelVersion version, ResourceTransformationDescriptionBuilder builder) {
         AbstractProtocolResourceDefinition.addTransformations(version, builder);
 
-        if (JGroupsModel.VERSION_7_0_0.requiresTransformation(version)) {
+        if (JGroupsModel.VERSION_8_0_0.requiresTransformation(version)) {
             builder.getAttributeBuilder()
                     .addRejectCheck(REJECT_CREDENTIAL_REFERENCE_WITH_BOTH_STORE_AND_CLEAR_TEXT, EncryptProtocolResourceDefinition.Attribute.KEY_CREDENTIAL.getName())
+                    .end();
+            builder.addChildResource(PathElement.pathElement("token"))
+                    .getAttributeBuilder()
+                    .addRejectCheck(REJECT_CREDENTIAL_REFERENCE_WITH_BOTH_STORE_AND_CLEAR_TEXT, AuthTokenResourceDefinition.Attribute.SHARED_SECRET.getName())
+                    .addRejectCheck(REJECT_CREDENTIAL_REFERENCE_WITH_BOTH_STORE_AND_CLEAR_TEXT, CipherAuthTokenResourceDefinition.Attribute.KEY_CREDENTIAL.getName())
                     .end();
         }
 

@@ -371,7 +371,10 @@ public class JGroupsTransformersTestCase extends OperationTestCaseBase {
 
         PathAddress subsystemAddress = PathAddress.pathAddress(JGroupsSubsystemResourceDefinition.PATH);
 
-        if (JGroupsModel.VER)
+        if (JGroupsModel.VERSION_8_0_0.requiresTransformation(version)) {
+            config.addFailedAttribute(subsystemAddress.append(StackResourceDefinition.pathElement("credentialReference1")).append(EncryptProtocolResourceDefinition.pathElement("SYM_ENCRYPT")),
+                    FailedOperationTransformationConfig.REJECTED_RESOURCE);
+        }
 
         if (JGroupsModel.VERSION_7_0_0.requiresTransformation(version)) {
             config.addFailedAttribute(subsystemAddress.append(StackResourceDefinition.WILDCARD_PATH).append(TransportResourceDefinition.pathElement("TCP_NIO2")), FailedOperationTransformationConfig.REJECTED_RESOURCE);
