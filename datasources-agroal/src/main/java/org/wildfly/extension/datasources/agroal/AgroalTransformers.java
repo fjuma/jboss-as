@@ -21,16 +21,25 @@
  */
 package org.wildfly.extension.datasources.agroal;
 
-import static org.jboss.as.controller.security.CredentialReference.REJECT_CREDENTIAL_REFERENCE_WITH_BOTH_STORE_AND_CLEAR_TEXT;
+import static org.jboss.as.controller.logging.ControllerLogger.ROOT_LOGGER;
+import static org.jboss.as.controller.security.CredentialReference.CLEAR_TEXT;
+import static org.jboss.as.controller.security.CredentialReference.STORE;
+import static org.wildfly.extension.datasources.agroal.AbstractDataSourceDefinition.CONNECTION_FACTORY_ATTRIBUTE;
 import static org.wildfly.extension.datasources.agroal.AbstractDataSourceDefinition.CREDENTIAL_REFERENCE;
 
+import java.util.Map;
+
 import org.jboss.as.controller.ModelVersion;
+import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.transform.ExtensionTransformerRegistration;
 import org.jboss.as.controller.transform.SubsystemTransformerRegistration;
+import org.jboss.as.controller.transform.TransformationContext;
 import org.jboss.as.controller.transform.description.ChainedTransformationDescriptionBuilder;
+import org.jboss.as.controller.transform.description.RejectAttributeChecker;
 import org.jboss.as.controller.transform.description.ResourceTransformationDescriptionBuilder;
 import org.jboss.as.controller.transform.description.TransformationDescriptionBuilder;
+import org.jboss.dmr.ModelNode;
 
 public class AgroalTransformers implements ExtensionTransformerRegistration {
 
@@ -58,9 +67,40 @@ public class AgroalTransformers implements ExtensionTransformerRegistration {
 
         ResourceTransformationDescriptionBuilder datasourceBuilder = builder.addChildResource(PathElement.pathElement("datasource"));
         datasourceBuilder
-                //.addChildResource(PathElement.pathElement(CONNECTION_FACTORY_ATTRIBUTE.getName()))
                 .getAttributeBuilder()
-                .addRejectCheck(REJECT_CREDENTIAL_REFERENCE_WITH_BOTH_STORE_AND_CLEAR_TEXT, CREDENTIAL_REFERENCE)
+                .addRejectCheck(REJECT_CREDENTIAL_REFERENCE_WITH_BOTH_STORE_AND_CLEAR_TEXT, CONNECTION_FACTORY_ATTRIBUTE)
+                .end();
+        ResourceTransformationDescriptionBuilder xaDatasourceBuilder = builder.addChildResource(PathElement.pathElement("xa-datasource"));
+        xaDatasourceBuilder
+                .getAttributeBuilder()
+                .addRejectCheck(REJECT_CREDENTIAL_REFERENCE_WITH_BOTH_STORE_AND_CLEAR_TEXT, CONNECTION_FACTORY_ATTRIBUTE)
                 .end();
     }
+
+    private static final RejectAttributeChecker REJECT_CREDENTIAL_REFERENCE_WITH_BOTH_STORE_AND_CLEAR_TEXT = new RejectAttributeChecker.DefaultRejectAttributeChecker() {
+
+        @Override
+        public String getRejectionLogMessage(Map<String, ModelNode> attributes) {
+            return ROOT_LOGGER.invalidAttributeValue(CLEAR_TEXT).getMessage();
+        }
+
+        @Override
+        protected boolean rejectAttribute(PathAddress address, String attributeName, ModelNode attributeValue, TransformationContext context) {
+            if (attributeValue.isDefined()) {
+                if (attributeValue.hasDefined(CREDENTIAL_REFERENCE.getName())) {
+                    ModelNode credentialReference = attributeValue.get(CREDENTIAL_REFERENCE.getName());
+                    String store = null;
+                    String secret = null;
+                    if (credentialReference.hasDefined(STORE)) {
+                        store = credentialReference.get(STORE).asString();
+                    }
+                    if (credentialReference.hasDefined(CLEAR_TEXT)) {
+                        secret = credentialReference.get(CLEAR_TEXT).asString();
+                    }
+                    return store != null && secret != null;
+                }
+            }
+            return false;
+        }
+    };
 }
