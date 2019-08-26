@@ -83,12 +83,6 @@
 
         <queue name="coreQueueB" address="addressB" routing-type="ANYCAST" />
 
-        <address-setting name="#"
-                         auto-create-queues="true"
-                         auto-delete-queues="true"
-                         auto-create-addresses="false"
-                         auto-delete-addresses="false" />
-
         <remote-connector name="netty"
                                            socket-binding="messaging-throughput">
             <param name="batch-delay" value="${batch.delay:50}"/>
@@ -96,13 +90,6 @@
 
         <in-vm-connector name="in-vm"
                                           server-id="${my.server-id:0}"/>
-
-        <http-connector name="http"
-                        socket-binding="http"
-                        endpoint="http"
-                        server-name="=foo">
-            <param name="batch-delay" value="${batch.delay:50}"/>
-        </http-connector>
 
         <cluster-connection name="cc1"
                             address="${address:cc1-address}"
@@ -165,90 +152,56 @@
                          jgroups-channel="ee"
                          jgroups-cluster="activemq-cluster"/>
     </server>
-    <server name="server2">
-
+    <server name="server1">
         <security elytron-domain="elytronDomain"/>
         <cluster user="testuser">
             <credential-reference store="cs1" alias="testuser" clear-text="clusterpass"/>
         </cluster>
-        <journal datasource="fooDS"
-                 database="mysql"
-                 jdbc-lock-expiration="891"
-                 jdbc-lock-renew-period="892"
-                 jdbc-network-timeout="4567"
-                 messages-table="MY_MESSAGES"
-                 bindings-table="MY_BINDINGS"
-                 jms-bindings-table="MY_JMS_BINDINGS"
-                 large-messages-table="MY_LARGE_MESSAGES"
-                 node-manager-store-table="MY_NODE_MANAGER_STORE"
-                 page-store-table="MY_PAGE_STORE"
-                 global-max-disk-usage="70"
-                 global-max-memory-size="100000"
-                 disk-scan-period="10000"
-                 file-open-timeout="7"/>
-
-        <http-connector name="http"
-                        socket-binding="http"
-                        endpoint="http"
-                        server-name="=foo">
-            <param name="batch-delay" value="${batch.delay:50}"/>
-        </http-connector>
-
-        <cluster-connection name="cc1"
-                            address="${address:cc1-address}"
-                            connector-name="netty"
-                            producer-window-size="${producer.windows.size:5678}"/>
-
-        <bridge name="bridge1"
-                queue-name="${queue.name:coreQueueA}"
-                forwarding-address="${forwarding.address:forwardingaddress1}"
-                producer-window-size="${producer.windows.size:5678}"
-                user="${user:Brian}">
-            <credential-reference clear-text="secret1"/>
-        </bridge>
+    </server>
+    <server name="server2">
+        <queue name="coreQueueA"
+               address="${address:addressA}"
+               filter="${filter:afilter}"
+               durable="${durable:true}"/>
         <bridge name="bridge2"
                 queue-name="${queue.name:coreQueueA}"
                 forwarding-address="${forwarding.address:forwardingaddress1}"
                 producer-window-size="${producer.windows.size:5678}"
-                user="${user:Brian}"
-                password="${password:secret}">
+                static-connectors="in-vm netty"
+                user="${user:Brian}">
+            <credential-reference store="cs1" clear-text="bridgepass"/>
         </bridge>
-
-        <connection-factory name="otherConnectionFactory"
-                            discovery-group="groupC"
-                            entries="otherConnectionFactory"
-                            deserialization-black-list="org.foo.Bar org.foo.Baz"
-                            deserialization-white-list="org.bar.Bar org.baz.Baz"
-                            initial-message-packet-size="${initial.message.packet.size:12345}"/>
-
-        <pooled-connection-factory name="hornetq-ra-local"
-                                   transaction="local"
-                                   user="alice"
-                                   password="alicepassword"
-                                   entries="java:/JmsLocal"
-                                   statistics-enabled="true">
-            <inbound-config
-                    rebalance-connections="true" />
-            <outbound-config
-                    allow-local-transactions="true" />
-
-        </pooled-connection-factory>
+    </server>
+    <server name="server3">
+        <in-vm-connector name="in-vm"
+                         server-id="${my.server-id:0}"/>
         <pooled-connection-factory name="pcf-with-credential-reference"
                                    entries="java:/JmsLocal2"
+                                   connectors="in-vm"
                                    user="foo"
                                    deserialization-black-list="org.foo.Bar org.foo.Baz"
                                    deserialization-white-list="org.bar.Bar org.baz.Baz">
-            <credential-reference clear-text="passwordOut!"/>
+            <credential-reference store="cs1" clear-text="pooledpass"/>
         </pooled-connection-factory>
-
-        <broadcast-group name="groupT"
-                         jgroups-channel="ee"
-                         jgroups-cluster="activemq-cluster"/>
-
-        <discovery-group name="groupU"
-                         jgroups-channel="ee"
-                         jgroups-cluster="activemq-cluster"/>
     </server>
+    <jms-bridge name="bridge-with-credential-reference"
+                module="com.foo.bar"
+                quality-of-service="${quality.of.service:AT_MOST_ONCE}"
+                failure-retry-interval="${failure.retry.interval:45678}"
+                max-retries="${max.retries:7890}"
+                max-batch-size="${max.batch.size:12345}"
+                max-batch-time="${max.batch.time:10000}">
+        <source connection-factory="/cf/sourceCF"
+                destination="/topic/anotherSourceTopic"
+                user="myUser">
+            <source-credential-reference store="cs1" clear-text="sourcepass"/>
+        </source>
+        <target connection-factory="/cf/targetCF"
+                destination="anotherMQ/jms/queue/anotherTargetQueue"
+                user="myUser">
+            <target-credential-reference alias="bob" store="jms-bridge-store" clear-text="targetpass"/>
+        </target>
+    </jms-bridge>
     <server name="other">
         <replication-master />
     </server>

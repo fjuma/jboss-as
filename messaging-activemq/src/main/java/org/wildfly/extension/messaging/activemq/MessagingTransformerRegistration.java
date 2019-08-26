@@ -92,7 +92,7 @@ public class MessagingTransformerRegistration implements ExtensionTransformerReg
                 .addRejectCheck(REJECT_CREDENTIAL_REFERENCE_WITH_BOTH_STORE_AND_CLEAR_TEXT, BridgeDefinition.CREDENTIAL_REFERENCE.getName())
                 .end();
 
-        ResourceTransformationDescriptionBuilder jmsBridge = server.addChildResource(MessagingExtension.JMS_BRIDGE_PATH);
+        ResourceTransformationDescriptionBuilder jmsBridge = subsystem.addChildResource(MessagingExtension.JMS_BRIDGE_PATH);
         jmsBridge.getAttributeBuilder()
                 .addRejectCheck(REJECT_CREDENTIAL_REFERENCE_WITH_BOTH_STORE_AND_CLEAR_TEXT, JMSBridgeDefinition.SOURCE_CREDENTIAL_REFERENCE.getName())
                 .end();
