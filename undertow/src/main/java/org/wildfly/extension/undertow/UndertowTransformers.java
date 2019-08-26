@@ -22,6 +22,7 @@
 
 package org.wildfly.extension.undertow;
 
+import static org.jboss.as.controller.security.CredentialReference.REJECT_CREDENTIAL_REFERENCE_WITH_BOTH_STORE_AND_CLEAR_TEXT;
 import static org.wildfly.extension.undertow.ApplicationSecurityDomainDefinition.ENABLE_JASPI;
 import static org.wildfly.extension.undertow.ApplicationSecurityDomainDefinition.INTEGRATED_JASPI;
 import static org.wildfly.extension.undertow.ApplicationSecurityDomainDefinition.SECURITY_DOMAIN;
@@ -111,6 +112,11 @@ public class UndertowTransformers implements ExtensionTransformerRegistration {
                 .getAttributeBuilder()
                     .addRejectCheck(RejectAttributeChecker.DEFINED, ENABLE_JASPI, INTEGRATED_JASPI)
                     .setDiscard(DiscardAttributeChecker.ALWAYS, ENABLE_JASPI, INTEGRATED_JASPI) // Discard so we don't send over the defaults.
+                .end();
+        ResourceTransformationDescriptionBuilder ssoBuilder = subsystemBuilder.addChildResource(UndertowExtension.PATH_APPLICATION_SECURITY_DOMAIN)
+                .addChildResource(UndertowExtension.PATH_SSO);
+        ssoBuilder.getAttributeBuilder()
+                .addRejectCheck(REJECT_CREDENTIAL_REFERENCE_WITH_BOTH_STORE_AND_CLEAR_TEXT, ApplicationSecurityDomainSingleSignOnDefinition.Attribute.CREDENTIAL.getName())
                 .end();
     }
 

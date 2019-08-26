@@ -184,6 +184,8 @@ public class UndertowTransformersTestCase extends AbstractSubsystemTest {
         final PathAddress hostAddress = serverAddress.append(UndertowExtension.HOST_PATH);
         doRejectTest(ModelTestControllerVersion.EAP_7_2_0, EAP7_2_0, new FailedOperationTransformationConfig()
                 .addFailedAttribute(hostAddress.append(PathElement.pathElement(Constants.SETTING, "console-access-log")), FailedOperationTransformationConfig.REJECTED_RESOURCE)
+                .addFailedAttribute(subsystemAddress.append(UndertowExtension.PATH_APPLICATION_SECURITY_DOMAIN).append(UndertowExtension.PATH_SSO),
+                        FailedOperationTransformationConfig.REJECTED_RESOURCE)
         );
     }
 
