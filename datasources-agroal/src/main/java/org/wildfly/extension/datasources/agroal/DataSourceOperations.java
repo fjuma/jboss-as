@@ -22,6 +22,8 @@
 package org.wildfly.extension.datasources.agroal;
 
 import static org.jboss.as.controller.security.CredentialReference.handleCredentialReferenceUpdate;
+import static org.jboss.as.controller.security.CredentialReference.rollbackCredentialStoreUpdate;
+import static org.wildfly.extension.datasources.agroal.AbstractDataSourceDefinition.CREDENTIAL_REFERENCE;
 
 import javax.transaction.TransactionSynchronizationRegistry;
 
@@ -100,6 +102,11 @@ class DataSourceOperations {
             AbstractDataSourceOperations.setupElytronSecurity(context, factoryModel, dataSourceService, serviceBuilder);
 
             serviceBuilder.install();
+        }
+
+        @Override
+        protected void rollbackRuntime(OperationContext context, final ModelNode operation, final Resource resource) {
+            rollbackCredentialStoreUpdate(CREDENTIAL_REFERENCE, context, resource);
         }
     }
 

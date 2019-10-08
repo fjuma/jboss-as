@@ -23,7 +23,9 @@
 package org.wildfly.extension.messaging.activemq;
 
 import static org.jboss.as.controller.security.CredentialReference.handleCredentialReferenceUpdate;
+import static org.jboss.as.controller.security.CredentialReference.rollbackCredentialStoreUpdate;
 import static org.wildfly.extension.messaging.activemq.BridgeDefinition.ATTRIBUTES;
+import static org.wildfly.extension.messaging.activemq.BridgeDefinition.CREDENTIAL_REFERENCE;
 import static org.wildfly.extension.messaging.activemq.BridgeDefinition.DISCOVERY_GROUP_NAME;
 import static org.wildfly.extension.messaging.activemq.BridgeDefinition.FORWARDING_ADDRESS;
 import static org.wildfly.extension.messaging.activemq.BridgeDefinition.INITIAL_CONNECT_ATTEMPTS;
@@ -107,6 +109,11 @@ public class BridgeAdd extends AbstractAddStepHandler {
         }
         // else the initial subsystem install is not complete; MessagingSubsystemAdd will add a
         // handler that calls addBridgeConfigs
+    }
+
+    @Override
+    protected void rollbackRuntime(OperationContext context, final ModelNode operation, final Resource resource) {
+        rollbackCredentialStoreUpdate(CREDENTIAL_REFERENCE, context, resource);
     }
 
     static void addBridgeConfigs(final OperationContext context, final Configuration configuration, final ModelNode model)  throws OperationFailedException {

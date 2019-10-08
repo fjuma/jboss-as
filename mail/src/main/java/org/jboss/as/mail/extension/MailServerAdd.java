@@ -23,6 +23,7 @@
 package org.jboss.as.mail.extension;
 
 import static org.jboss.as.controller.security.CredentialReference.handleCredentialReferenceUpdate;
+import static org.jboss.as.controller.security.CredentialReference.rollbackCredentialStoreUpdate;
 
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
@@ -68,6 +69,11 @@ class MailServerAdd extends RestartParentResourceAddHandler {
         populateModel(operation, resource.getModel());
         handleCredentialReferenceUpdate(context, resource.getModel());
         recordCapabilitiesAndRequirements(context, operation, resource);
+    }
+
+    @Override
+    protected void rollbackRuntime(OperationContext context, final ModelNode operation, final Resource resource) {
+        rollbackCredentialStoreUpdate(MailServerDefinition.CREDENTIAL_REFERENCE, context, resource);
     }
 
     @Override

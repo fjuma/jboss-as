@@ -24,6 +24,7 @@ package org.jboss.as.clustering.jgroups.subsystem;
 
 import static org.jboss.as.clustering.jgroups.subsystem.AuthTokenResourceDefinition.Attribute.SHARED_SECRET;
 import static org.jboss.as.controller.security.CredentialReference.handleCredentialReferenceUpdate;
+import static org.jboss.as.controller.security.CredentialReference.rollbackCredentialStoreUpdate;
 
 import java.util.function.UnaryOperator;
 
@@ -140,6 +141,12 @@ public class AuthTokenResourceDefinition<T extends AuthToken> extends ChildResou
             super.populateModel(context, operation, resource);
             final ModelNode model = resource.getModel();
             handleCredentialReferenceUpdate(context, model.get(SHARED_SECRET.getName()), SHARED_SECRET.getName());
+        }
+
+        @Override
+        protected void rollbackRuntime(OperationContext context, final ModelNode operation, final Resource resource) {
+            rollbackCredentialStoreUpdate(SHARED_SECRET.getDefinition(), context, resource);
+            super.rollbackRuntime(context, operation, resource);
         }
     }
 

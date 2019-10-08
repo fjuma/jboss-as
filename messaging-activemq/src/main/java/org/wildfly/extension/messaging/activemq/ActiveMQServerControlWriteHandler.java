@@ -26,6 +26,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
 import static org.jboss.as.controller.security.CredentialReference.applyCredentialReferenceUpdateToRuntime;
 import static org.jboss.as.controller.security.CredentialReference.handleCredentialReferenceUpdate;
+import static org.jboss.as.controller.security.CredentialReference.rollbackCredentialStoreUpdate;
 import static org.wildfly.extension.messaging.activemq.ServerDefinition.CREDENTIAL_REFERENCE;
 
 import org.apache.activemq.artemis.api.core.management.ActiveMQServerControl;
@@ -120,6 +121,9 @@ public class ActiveMQServerControlWriteHandler extends AbstractWriteAttributeHan
                                          final Void handback) throws OperationFailedException {
 
         AttributeDefinition attr = getAttributeDefinition(attributeName);
+        if (attr.equals(CREDENTIAL_REFERENCE)) {
+            rollbackCredentialStoreUpdate(attr, context, valueToRevert);
+        }
         if (!attr.getFlags().contains(AttributeAccess.Flag.RESTART_ALL_SERVICES)) {
             ServiceRegistry registry = context.getServiceRegistry(true);
             final ServiceName serviceName = MessagingServices.getActiveMQServiceName(PathAddress.pathAddress(operation.get(OP_ADDR)));

@@ -24,6 +24,7 @@ package org.jboss.as.clustering.jgroups.subsystem;
 
 import static org.jboss.as.clustering.jgroups.subsystem.CipherAuthTokenResourceDefinition.Attribute.KEY_CREDENTIAL;
 import static org.jboss.as.controller.security.CredentialReference.handleCredentialReferenceUpdate;
+import static org.jboss.as.controller.security.CredentialReference.rollbackCredentialStoreUpdate;
 
 import java.util.function.UnaryOperator;
 
@@ -141,6 +142,12 @@ public class CipherAuthTokenResourceDefinition extends AuthTokenResourceDefiniti
             super.populateModel(context, operation, resource);
             final ModelNode model = resource.getModel();
             handleCredentialReferenceUpdate(context, model.get(KEY_CREDENTIAL.getName()), KEY_CREDENTIAL.getName());
+        }
+
+        @Override
+        protected void rollbackRuntime(OperationContext context, final ModelNode operation, final Resource resource) {
+            rollbackCredentialStoreUpdate(KEY_CREDENTIAL.getDefinition(), context, resource);
+            super.rollbackRuntime(context, operation, resource);
         }
     }
 

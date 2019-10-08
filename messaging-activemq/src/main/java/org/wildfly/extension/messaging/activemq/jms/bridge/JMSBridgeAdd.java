@@ -24,6 +24,7 @@ package org.wildfly.extension.messaging.activemq.jms.bridge;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
 import static org.jboss.as.controller.security.CredentialReference.handleCredentialReferenceUpdate;
+import static org.jboss.as.controller.security.CredentialReference.rollbackCredentialStoreUpdate;
 import static org.jboss.as.server.Services.requireServerExecutor;
 import static org.wildfly.extension.messaging.activemq.jms.bridge.JMSBridgeDefinition.SOURCE_CREDENTIAL_REFERENCE;
 import static org.wildfly.extension.messaging.activemq.jms.bridge.JMSBridgeDefinition.TARGET_CREDENTIAL_REFERENCE;
@@ -127,6 +128,12 @@ public class JMSBridgeAdd extends AbstractAddStepHandler {
             }
 
         }, OperationContext.Stage.RUNTIME);
+    }
+
+    @Override
+    protected void rollbackRuntime(OperationContext context, final ModelNode operation, final Resource resource) {
+        rollbackCredentialStoreUpdate(SOURCE_CREDENTIAL_REFERENCE, context, resource);
+        rollbackCredentialStoreUpdate(TARGET_CREDENTIAL_REFERENCE, context, resource);
     }
 
     private boolean dependsOnLocalResources(OperationContext context, ModelNode model, AttributeDefinition attr) throws OperationFailedException {

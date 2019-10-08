@@ -23,6 +23,7 @@
 package org.wildfly.extension.undertow;
 
 import static org.jboss.as.controller.security.CredentialReference.handleCredentialReferenceUpdate;
+import static org.jboss.as.controller.security.CredentialReference.rollbackCredentialStoreUpdate;
 
 import java.util.function.UnaryOperator;
 
@@ -121,6 +122,12 @@ public class ApplicationSecurityDomainSingleSignOnDefinition extends SingleSignO
             super.populateModel(context, operation, resource);
             handleCredentialReferenceUpdate(context, resource.getModel());
         }
+
+        @Override
+        protected void rollbackRuntime(OperationContext context, ModelNode operation, Resource resource) {
+            rollbackCredentialStoreUpdate(Attribute.CREDENTIAL.getDefinition(), context, resource);
+            super.rollbackRuntime(context, operation, resource);
+        }
     }
 
     private static class UndertowWriteAttributeStepHandler extends WriteAttributeStepHandler {
@@ -142,6 +149,14 @@ public class ApplicationSecurityDomainSingleSignOnDefinition extends SingleSignO
                     registration.registerReadWriteAttribute(attribute, null, this);
                 }
             }
+        }
+
+        @Override
+        protected void revertUpdateToRuntime(OperationContext context, ModelNode operation, String attributeName, ModelNode valueToRestore, ModelNode resolvedValue, Void handback) throws OperationFailedException {
+            if (attributeName.equals(Attribute.CREDENTIAL.getName())) {
+                rollbackCredentialStoreUpdate(Attribute.CREDENTIAL.getDefinition(), context, resolvedValue);
+            }
+            super.revertUpdateToRuntime(context, operation, attributeName, valueToRestore, resolvedValue, handback);
         }
 
     }

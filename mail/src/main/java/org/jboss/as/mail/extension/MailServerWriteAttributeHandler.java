@@ -24,6 +24,7 @@ package org.jboss.as.mail.extension;
 
 import static org.jboss.as.controller.security.CredentialReference.applyCredentialReferenceUpdateToRuntime;
 import static org.jboss.as.controller.security.CredentialReference.handleCredentialReferenceUpdate;
+import static org.jboss.as.controller.security.CredentialReference.rollbackCredentialStoreUpdate;
 import static org.jboss.as.mail.extension.MailServerDefinition.CREDENTIAL_REFERENCE;
 
 import java.util.Collection;
@@ -68,6 +69,14 @@ class MailServerWriteAttributeHandler extends RestartParentWriteAttributeHandler
             requiresReload = applyCredentialReferenceUpdateToRuntime(context, operation, resolvedValue, currentValue);
         }
         return super.applyUpdateToRuntime(context, operation, attributeName, resolvedValue, currentValue, handbackHolder) || requiresReload;
+    }
+
+    @Override
+    protected void revertUpdateToRuntime(OperationContext context, ModelNode operation, String attributeName, ModelNode valueToRestore, ModelNode resolvedValue, ModelNode invalidatedParentModel) throws OperationFailedException {
+        if (attributeName.equals(CREDENTIAL_REFERENCE.getName())) {
+            rollbackCredentialStoreUpdate(MailServerDefinition.CREDENTIAL_REFERENCE, context, resolvedValue);
+        }
+        super.revertUpdateToRuntime(context, operation, attributeName, valueToRestore, resolvedValue, invalidatedParentModel);
     }
 
     @Override
