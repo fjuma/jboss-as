@@ -68,6 +68,7 @@ public class MessagingTransformerRegistration implements ExtensionTransformerReg
     public void registerTransformers(SubsystemTransformerRegistration registration) {
         ChainedTransformationDescriptionBuilder builder = TransformationDescriptionBuilder.Factory.createChainedSubystemInstance(registration.getCurrentSubsystemVersion());
 
+        registerTransformers_WF_19(builder.createBuilder(MessagingExtension.VERSION_9_0_0, MessagingExtension.VERSION_8_0_0));
         registerTransformers_WF_18(builder.createBuilder(MessagingExtension.VERSION_8_0_0, MessagingExtension.VERSION_7_0_0));
         registerTransformers_WF_17(builder.createBuilder(MessagingExtension.VERSION_7_0_0, MessagingExtension.VERSION_6_0_0));
         registerTransformers_WF_16(builder.createBuilder(MessagingExtension.VERSION_6_0_0, MessagingExtension.VERSION_5_0_0));
@@ -78,7 +79,10 @@ public class MessagingTransformerRegistration implements ExtensionTransformerReg
 
         builder.buildAndRegister(registration, new ModelVersion[] { MessagingExtension.VERSION_1_0_0, MessagingExtension.VERSION_2_0_0,
             MessagingExtension.VERSION_3_0_0, MessagingExtension.VERSION_4_0_0, MessagingExtension.VERSION_5_0_0,
-            MessagingExtension.VERSION_6_0_0, MessagingExtension.VERSION_7_0_0});
+            MessagingExtension.VERSION_6_0_0, MessagingExtension.VERSION_7_0_0, MessagingExtension.VERSION_8_0_0});
+    }
+
+    private static void registerTransformers_WF_19(ResourceTransformationDescriptionBuilder subsystem) {
     }
 
     private static void registerTransformers_WF_18(ResourceTransformationDescriptionBuilder subsystem) {
