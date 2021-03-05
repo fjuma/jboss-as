@@ -49,11 +49,13 @@ import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.test.integration.security.common.CoreUtils;
+import org.jboss.as.test.integration.security.common.SecurityTraceLoggingServerSetupTask;
 import org.jboss.as.test.integration.security.common.Utils;
 import org.jboss.as.test.integration.security.common.servlets.PrincipalPrintingServlet;
 import org.jboss.as.test.shared.CliUtils;
 import org.jboss.as.test.shared.ServerReload;
 import org.jboss.dmr.ModelNode;
+import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Assert;
@@ -91,9 +93,10 @@ import org.wildfly.test.undertow.common.UndertowApplicationSecurityDomain;
  */
 @RunWith(Arquillian.class)
 @RunAsClient
-@ServerSetup({KeystoreRealmTestCase.ServerSetup.class, KeystoreRealmTestCase.ForwardingSetup.class, WelcomeContent.SetupTask.class})
+@ServerSetup({SecurityTraceLoggingServerSetupTask.class, KeystoreRealmTestCase.ServerSetup.class, KeystoreRealmTestCase.ForwardingSetup.class, WelcomeContent.SetupTask.class})
 public class KeystoreRealmTestCase extends CommonBase {
 
+    private static Logger logger = Logger.getLogger(KeystoreRealmTestCase.class);
     protected static KeyStore trustStore;
     protected static KeyStore keyStore;
     protected static KeyStore usersStore;
@@ -146,6 +149,7 @@ public class KeystoreRealmTestCase extends CommonBase {
     @Test
     public void testServerRootConnection() throws Exception {
         // server certificate should work at TLS level
+        logger.info("KEYSTORE IS " + keyStore);
         testCommon(keyStore, trustStore, PASSWORD, true);
     }
 
@@ -192,15 +196,18 @@ public class KeystoreRealmTestCase extends CommonBase {
 
         @Override
         protected void setup(ModelControllerClient modelControllerClient) throws Exception {
+            logger.trace("KeystoreRealmTestCase - Starting server setup");
             if (WORKING_DIR_CA.exists()) {
                 FileUtils.deleteQuietly(WORKING_DIR_CA);
             }
             Assert.assertTrue(WORKING_DIR_CA.mkdirs());
+            logger.trace("KeystoreRealmTestCase - Creating key material");
             keyStore = createKeyStore();
             trustStore = createKeyStore();
             usersStore = createKeyStore();
             user1Store = createKeyStore();
 
+            logger.trace("KeystoreRealmTestCase - Setting up server config");
             // generate the CA key and certificate
             KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
             X500Principal issuerDN = new X500Principal("C=UK, O=elytron.com, CN=Elytron CA");
