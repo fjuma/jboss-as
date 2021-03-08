@@ -177,6 +177,88 @@ public class KeystoreRealmTestCase extends CommonBase {
                 new BasicHeader("SSL_CIPHER", "ECDHE-RSA-AES128-GCM-SHA256"));
     }
 
+    public static void beforeTest() throws Exception {
+        logger.trace("KeystoreRealmTestCase - Starting server setup");
+        if (WORKING_DIR_CA.exists()) {
+            FileUtils.deleteQuietly(WORKING_DIR_CA);
+        }
+        Assert.assertTrue(WORKING_DIR_CA.mkdirs());
+        logger.trace("KeystoreRealmTestCase - Creating key material");
+        keyStore = createKeyStore();
+        trustStore = createKeyStore();
+        usersStore = createKeyStore();
+        user1Store = createKeyStore();
+
+        logger.trace("KeystoreRealmTestCase - Setting up server config");
+        // generate the CA key and certificate
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+        X500Principal issuerDN = new X500Principal("C=UK, O=elytron.com, CN=Elytron CA");
+        SelfSignedX509CertificateAndSigningKey issuerSelfSignedX509CertificateAndSigningKey = SelfSignedX509CertificateAndSigningKey.builder()
+                .setDn(issuerDN)
+                .setKeyAlgorithmName("RSA")
+                .setSignatureAlgorithmName("SHA256withRSA")
+                .addExtension(false, "BasicConstraints", "CA:true,pathlen:2147483647")
+                .build();
+        X509Certificate issuerCertificate = issuerSelfSignedX509CertificateAndSigningKey.getSelfSignedCertificate();
+
+        keyStore.setCertificateEntry("ca", issuerCertificate);
+        trustStore.setCertificateEntry("ca", issuerCertificate);
+
+        // generate the server key and keystore
+        KeyPair serverKeys = keyPairGenerator.generateKeyPair();
+        X509Certificate serverCertificate = new X509CertificateBuilder().setIssuerDn(issuerDN)
+                .setSubjectDn(new X500Principal("C=UK, O=elytron.com, CN=localhost"))
+                .setSignatureAlgorithmName("SHA256withRSA")
+                .setSigningKey(issuerSelfSignedX509CertificateAndSigningKey.getSigningKey())
+                .setPublicKey(serverKeys.getPublic())
+                .setSerialNumber(new BigInteger("3"))
+                .addExtension(new BasicConstraintsExtension(false, false, -1))
+                .addExtension(new SubjectAlternativeNamesExtension(false,
+                        Arrays.asList(new GeneralName.DNSName("localhost"), new GeneralName.IPAddress("127.0.0.1"))))
+                .build();
+        keyStore.setKeyEntry("localhost", serverKeys.getPrivate(), PASSWORD_CHAR,
+                new X509Certificate[]{serverCertificate, issuerCertificate});
+
+        // generate the users store with user1 and the server itself
+        KeyPair user1Keys = keyPairGenerator.generateKeyPair();
+        X509Certificate user1Certificate = new X509CertificateBuilder().setIssuerDn(issuerDN)
+                .setSubjectDn(new X500Principal("C=UK, O=elytron.com, CN=user1"))
+                .setSignatureAlgorithmName("SHA256withRSA")
+                .setSigningKey(issuerSelfSignedX509CertificateAndSigningKey.getSigningKey())
+                .setPublicKey(user1Keys.getPublic())
+                .setSerialNumber(new BigInteger("3"))
+                .addExtension(new BasicConstraintsExtension(false, false, -1))
+                .build();
+        user1Store.setKeyEntry("user1", user1Keys.getPrivate(), PASSWORD_CHAR,
+                new X509Certificate[]{user1Certificate, issuerCertificate});
+        usersStore.setCertificateEntry("user1", user1Certificate);
+
+        createTemporaryKeyStoreFile(keyStore, KEYSTORE_FILE, PASSWORD_CHAR);
+        createTemporaryKeyStoreFile(trustStore, TRUST_FILE, PASSWORD_CHAR);
+        createTemporaryKeyStoreFile(usersStore, USERS_KEYSTORE_FILE, PASSWORD_CHAR);
+        createTemporaryKeyStoreFile(user1Store, USER1_KEYSTORE_FILE, PASSWORD_CHAR);
+    }
+
+    public static void afterTest() {
+        Assert.assertTrue(TRUST_FILE.delete());
+        Assert.assertTrue(KEYSTORE_FILE.delete());
+        Assert.assertTrue(USERS_KEYSTORE_FILE.delete());
+        Assert.assertTrue(USER1_KEYSTORE_FILE.delete());
+        Assert.assertTrue(WORKING_DIR_CA.delete());
+    }
+
+    private static KeyStore createKeyStore() throws Exception {
+        KeyStore ks = KeyStore.getInstance("JKS");
+        ks.load(null, null);
+        return ks;
+    }
+
+    private static void createTemporaryKeyStoreFile(KeyStore keyStore, File outputFile, char[] password) throws Exception {
+        try (OutputStream fos = Files.newOutputStream(outputFile.toPath())) {
+            keyStore.store(fos, password);
+        }
+    }
+
     /**
      * Setup class to establish https and the certificate real.
      */
@@ -196,77 +278,14 @@ public class KeystoreRealmTestCase extends CommonBase {
 
         @Override
         protected void setup(ModelControllerClient modelControllerClient) throws Exception {
-            logger.trace("KeystoreRealmTestCase - Starting server setup");
-            if (WORKING_DIR_CA.exists()) {
-                FileUtils.deleteQuietly(WORKING_DIR_CA);
-            }
-            Assert.assertTrue(WORKING_DIR_CA.mkdirs());
-            logger.trace("KeystoreRealmTestCase - Creating key material");
-            keyStore = createKeyStore();
-            trustStore = createKeyStore();
-            usersStore = createKeyStore();
-            user1Store = createKeyStore();
-
-            logger.trace("KeystoreRealmTestCase - Setting up server config");
-            // generate the CA key and certificate
-            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-            X500Principal issuerDN = new X500Principal("C=UK, O=elytron.com, CN=Elytron CA");
-            SelfSignedX509CertificateAndSigningKey issuerSelfSignedX509CertificateAndSigningKey = SelfSignedX509CertificateAndSigningKey.builder()
-                    .setDn(issuerDN)
-                    .setKeyAlgorithmName("RSA")
-                    .setSignatureAlgorithmName("SHA256withRSA")
-                    .addExtension(false, "BasicConstraints", "CA:true,pathlen:2147483647")
-                    .build();
-            X509Certificate issuerCertificate = issuerSelfSignedX509CertificateAndSigningKey.getSelfSignedCertificate();
-
-            keyStore.setCertificateEntry("ca", issuerCertificate);
-            trustStore.setCertificateEntry("ca", issuerCertificate);
-
-            // generate the server key and keystore
-            KeyPair serverKeys = keyPairGenerator.generateKeyPair();
-            X509Certificate serverCertificate = new X509CertificateBuilder().setIssuerDn(issuerDN)
-                    .setSubjectDn(new X500Principal("C=UK, O=elytron.com, CN=localhost"))
-                    .setSignatureAlgorithmName("SHA256withRSA")
-                    .setSigningKey(issuerSelfSignedX509CertificateAndSigningKey.getSigningKey())
-                    .setPublicKey(serverKeys.getPublic())
-                    .setSerialNumber(new BigInteger("3"))
-                    .addExtension(new BasicConstraintsExtension(false, false, -1))
-                    .addExtension(new SubjectAlternativeNamesExtension(false,
-                            Arrays.asList(new GeneralName.DNSName("localhost"), new GeneralName.IPAddress("127.0.0.1"))))
-                    .build();
-            keyStore.setKeyEntry("localhost", serverKeys.getPrivate(), PASSWORD_CHAR,
-                    new X509Certificate[]{serverCertificate, issuerCertificate});
-
-            // generate the users store with user1 and the server itself
-            KeyPair user1Keys = keyPairGenerator.generateKeyPair();
-            X509Certificate user1Certificate = new X509CertificateBuilder().setIssuerDn(issuerDN)
-                    .setSubjectDn(new X500Principal("C=UK, O=elytron.com, CN=user1"))
-                    .setSignatureAlgorithmName("SHA256withRSA")
-                    .setSigningKey(issuerSelfSignedX509CertificateAndSigningKey.getSigningKey())
-                    .setPublicKey(user1Keys.getPublic())
-                    .setSerialNumber(new BigInteger("3"))
-                    .addExtension(new BasicConstraintsExtension(false, false, -1))
-                    .build();
-            user1Store.setKeyEntry("user1", user1Keys.getPrivate(), PASSWORD_CHAR,
-                    new X509Certificate[]{user1Certificate, issuerCertificate});
-            usersStore.setCertificateEntry("user1", user1Certificate);
-
-            createTemporaryKeyStoreFile(keyStore, KEYSTORE_FILE, PASSWORD_CHAR);
-            createTemporaryKeyStoreFile(trustStore, TRUST_FILE, PASSWORD_CHAR);
-            createTemporaryKeyStoreFile(usersStore, USERS_KEYSTORE_FILE, PASSWORD_CHAR);
-            createTemporaryKeyStoreFile(user1Store, USER1_KEYSTORE_FILE, PASSWORD_CHAR);
-
+            beforeTest();
             super.setup(modelControllerClient);
         }
 
         @Override
         protected void tearDown(ModelControllerClient modelControllerClient) throws Exception {
             super.tearDown(modelControllerClient);
-            Assert.assertTrue(TRUST_FILE.delete());
-            Assert.assertTrue(KEYSTORE_FILE.delete());
-            Assert.assertTrue(USERS_KEYSTORE_FILE.delete());
-            Assert.assertTrue(USER1_KEYSTORE_FILE.delete());
-            Assert.assertTrue(WORKING_DIR_CA.delete());
+            afterTest();
         }
 
         @Override
